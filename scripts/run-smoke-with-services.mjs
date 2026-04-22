@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const isWindows = process.platform === 'win32';
 
 // ── ANSI helpers ──────────────────────────────────────────────────────────────
 const C = { reset: '\x1b[0m', bold: '\x1b[1m', green: '\x1b[32m', red: '\x1b[31m', yellow: '\x1b[33m', grey: '\x1b[90m', cyan: '\x1b[36m' };
@@ -32,18 +33,18 @@ function log(msg) { process.stdout.write(msg + '\n'); }
 // ── Service definitions ───────────────────────────────────────────────────────
 const SERVICES = [
   {
-    name:       'Backend',
-    pingUrl:    'http://localhost:4000/api',
-    script:     'backend:dev',
-    env:        {},
-    timeoutMs:  90_000,
+    name:      'Backend',
+    pingUrl:   'http://localhost:4000/api',
+    script:    'backend:dev',
+    env:       {},
+    timeoutMs: 90_000,
   },
   {
-    name:       'Frontend',
-    pingUrl:    'http://localhost:3002',
-    script:     'frontend:start',
-    env:        { BROWSER: 'none' },
-    timeoutMs:  120_000,
+    name:      'Frontend',
+    pingUrl:   'http://localhost:3002',
+    script:    'frontend:start',
+    env:       { BROWSER: 'none' },
+    timeoutMs: 120_000,
   },
 ];
 
@@ -82,25 +83,46 @@ function waitForService(service) {
   });
 }
 
-const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npmCmd = isWindows ? 'npm.cmd' : 'npm';
 const spawned = [];
 
 function startService(service) {
   log(yellow(`  ⚡  Starting ${service.name} (npm run ${service.script})…`));
   const child = spawn(npmCmd, ['run', service.script], {
-    cwd: ROOT,
-    detached: false,
-    stdio: 'ignore',
-    env: { ...process.env, ...service.env },
+    cwd:      ROOT,
+    detached: true,
+    stdio:    'ignore',
+    env:      { ...process.env, ...service.env },
+    shell:    isWindows,
+    ...(isWindows && { windowsHide: true }),
   });
   child.unref();
   spawned.push(child);
   return child;
 }
 
+function killProcess(child) {
+  if (!child.pid) return;
+  try {
+    if (isWindows) {
+      spawn('taskkill', ['/pid', child.pid, '/f', '/t'], {
+        stdio:       'ignore',
+        windowsHide: true,
+        shell:       false,
+      });
+    } else {
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch {
+        try { process.kill(child.pid, 'SIGTERM'); } catch { /* already dead */ }
+      }
+    }
+  } catch { /* swallow */ }
+}
+
 function stopSpawned() {
   for (const child of spawned) {
-    try { child.kill('SIGTERM'); } catch (_) { /* already dead */ }
+    killProcess(child);
   }
 }
 
@@ -138,8 +160,15 @@ log('');
 // Run the smoke test script, inheriting stdio so output is visible
 const smoke = spawn(npmCmd, ['run', 'smoke:test'], {
   cwd:   ROOT,
-  stdio: 'inherit',
+  stdio: [process.stdin, process.stdout, process.stderr],
   env:   process.env,
+  shell: isWindows,
+});
+
+smoke.on('error', (err) => {
+  log(red(`  ✖  Smoke test process error: ${err.message}`));
+  stopSpawned();
+  process.exit(1);
 });
 
 smoke.on('close', (code) => {
@@ -147,5 +176,19 @@ smoke.on('close', (code) => {
   process.exit(code ?? 0);
 });
 
-process.on('SIGINT',  () => { stopSpawned(); process.exit(130); });
-process.on('SIGTERM', () => { stopSpawned(); process.exit(143); });
+process.on('SIGINT', () => {
+  log(yellow('\n  Interrupted — stopping services…'));
+  stopSpawned();
+  process.exit(130);
+});
+
+if (!isWindows) {
+  process.on('SIGTERM', () => {
+    stopSpawned();
+    process.exit(143);
+  });
+}
+
+process.on('exit', () => {
+  stopSpawned();
+});
