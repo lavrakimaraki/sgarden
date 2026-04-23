@@ -43,6 +43,8 @@ const SignUp = () => {
     </Grid>
   );
 
+// to break he duplicate code
+//lalalalal
   return (
     <AuthLayout
       title={{ text: "Sign Up" }}

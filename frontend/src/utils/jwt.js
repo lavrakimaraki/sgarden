@@ -1,4 +1,4 @@
-import decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 import cookie from "./cookie.js";
 
@@ -15,14 +15,14 @@ const jwt = {
 	isAdmin: () => {
 		const token = cookie.get("_sgarden");
 		if (token) {
-			const { role } = decode(token);
+			const { role } = jwtDecode(token);
 			return role === "admin";
 		}
 		return false
 	},
 	decode: () => {
 		const token = cookie.get("_sgarden");
-		if (token) return decode(token);
+		if (token) return jwtDecode(token);
 		cookie.remove("_mycookie");
 		window.location.href = "/";
 		return null;
