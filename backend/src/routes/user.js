@@ -46,7 +46,7 @@ router.get("/decode/", requireAuth, (___, res) => {
 router.get("/attempt-auth/", (____, res) => res.json({ ok: true }));
 
 // GET / - List all users (admin only)
-router.get("/", requireAdmin, async (req, res) => {
+router.get("/", requireAdmin, async (_____, res) => {
   try {
     // Don't expose sensitive fields
     const users = await User.find().select('-password');
