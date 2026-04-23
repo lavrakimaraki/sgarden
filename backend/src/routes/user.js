@@ -5,7 +5,7 @@ import { User, Invitation } from "../models/index.js";
 const router = express.Router({ mergeParams: true });
 
 // Middleware: Require authentication
-const requireAuth = (req, res, next) => {
+const requireAuth = (_, res, next) => {
   if (!res.locals.user) {
     return res.status(401).json({ message: "Authentication required" });
   }
@@ -13,7 +13,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // Middleware: Require admin role
-const requireAdmin = (req, res, next) => {
+const requireAdmin = (__, res, next) => {
   if (!res.locals.user || res.locals.user.role !== 'admin') {
     return res.status(403).json({ message: "Admin access required" });
   }
@@ -37,13 +37,13 @@ const requireOwnerOrAdmin = (req, res, next) => {
 };
 
 // GET /decode - Get current user info
-router.get("/decode/", requireAuth, (req, res) => {
+router.get("/decode/", requireAuth, (___, res) => {
   const { password, ...safeUser } = res.locals.user;
   return res.json(safeUser);
 });
 
 // GET /attempt-auth - Health check
-router.get("/attempt-auth/", (req, res) => res.json({ ok: true }));
+router.get("/attempt-auth/", (____, res) => res.json({ ok: true }));
 
 // GET / - List all users (admin only)
 router.get("/", requireAdmin, async (req, res) => {
