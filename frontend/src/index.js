@@ -28,6 +28,7 @@ import Users from "./screens/Users.js";
 import Dashboard from "./screens/Dashboard.js";
 import Dashboard1 from "./screens/Dashboard1.js";
 import Dashboard2 from "./screens/Dashboard2.js";
+import Profile from "./screens/Profile.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
 
@@ -81,6 +82,7 @@ const App = () => {
 								<Route path="reset-password" element={<GuestOnly c={<ResetPassword />} />} />
 								<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
 								<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
+								<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
 								<Route path="users" element={<AdminOnly c={<Users />} />} />
 								<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
 								<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />

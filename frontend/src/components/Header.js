@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
 	ExpandMore,
 	MoreVert as MoreIcon,
+	AccountCircle,
 } from "@mui/icons-material";
 import { makeStyles } from "@mui/styles";
 import { Image } from "mui-image";
@@ -74,8 +75,12 @@ const useStyles = makeStyles((theme) => ({
 	},
 }));
 
-const ButtonWithText = ({ text, icon, more, handler }) => (
-	<Button sx={{ height: "100%", display: "flex", flexDirection: "column", p: 1, mx: 1 }} onClick={(event) => handler(event)}>
+const ButtonWithText = ({ text, icon, more, handler, testId }) => (
+	<Button 
+		sx={{ height: "100%", display: "flex", flexDirection: "column", p: 1, mx: 1 }} 
+		onClick={(event) => handler(event)}
+		data-testid={testId}
+	>
 		<div style={{ width: "100%", height: "100%" }}>
 			{icon}
 		</div>
@@ -101,6 +106,12 @@ const Header = ({ isAuthenticated }) => {
 
 	const buttons = [
 		{
+			icon: <AccountCircle className={classes.svgIcon} />,
+			text: "Profile",
+			handler: () => navigate("/profile"),
+			testId: "profile-nav-link"
+		},
+		{
 			icon: <LogoutIcon className={classes.svgIcon} />,
 			text: "Logout",
 			handler: () => {
@@ -120,8 +131,12 @@ const Header = ({ isAuthenticated }) => {
 			onClose={handleMobileMenuClose}
 		>
 			{buttons.map((button) => (
-				<MenuItem key={button.text} onClick={button.handler}>
-					<Image src={button.icon} width="20px" sx={{ fill: "third" }} />
+				<MenuItem key={button.text} onClick={button.handler} data-testid={button.testId}>
+					{button.text === "Profile" ? (
+						<AccountCircle sx={{ width: "20px", height: "20px", mr: "5px" }} />
+					) : (
+						<Image src={button.icon} width="20px" sx={{ fill: "third" }} />
+					)}
 					<p style={{ marginLeft: "5px" }}>{button.text}</p>
 					{button.more && <ExpandMore />}
 				</MenuItem>
@@ -156,6 +171,7 @@ const Header = ({ isAuthenticated }) => {
 										text={button.text}
 										handler={button.handler}
 										more={button.more}
+										testId={button.testId}
 									/>
 								))}
 							</Box>
