@@ -1,206 +1,127 @@
 import { MenuItem, Select } from "@mui/material";
-import { makeStyles } from "@mui/styles";
-
-const useStyles = makeStyles((theme) => ({
-	primary_filled: {
-		backgroundColor: theme.palette.primary.main,
-		color: "white!important",
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: theme.palette.primaryDark.main,
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: theme.palette.primaryDark.main,
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	primary_outlined: {
-		backgroundColor: "transparent",
-		borderColor: theme.palette.primary.main,
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	secondary_filled: {
-		backgroundColor: theme.palette.secondary.main,
-		color: "white!important",
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: theme.palette.secondaryDark.main,
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: theme.palette.secondaryDark.main,
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	secondary_outlined: {
-		backgroundColor: "transparent",
-		borderColor: theme.palette.secondary.main,
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	third_filled: {
-		backgroundColor: theme.palette.third.main,
-		color: "white!important",
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: theme.palette.thirdDark.main,
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: theme.palette.thirdDark.main,
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	third_outlined: {
-		backgroundColor: "transparent",
-		borderColor: "third",
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	custom_filled: {
-		backgroundColor: (props) => theme?.palette[props.background]?.main || props.background,
-		color: "white!important",
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: (props) => theme?.palette[props.background]?.dark || props.background,
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: (props) => theme?.palette[props.background]?.dark || props.background,
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-	custom_outlined: {
-		backgroundColor: "transparent",
-		borderColor: (props) => theme?.palette[props.background]?.main || props.background,
-		borderRadius: "10px",
-		borderBottom: "0px",
-		"&, &:before, &:after": {
-			borderBottom: "0px!important",
-		},
-		"&:hover": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:focus": {
-			backgroundColor: "transparent",
-			borderBottom: "0px",
-		},
-		"&:before": {
-			borderBottom: "0px",
-		},
-	},
-}));
+import { useMemo } from "react";
 
 const Dropdown = ({
-	id = "custom-dropdown",
-	size = "",
-	placeholder = "Placeholder",
-	filled = true,
-	color = "white",
-	background = "secondary",
-	showPlaceholder = true,
-	width = "",
-	height = "100%",
-	items = [],
-	value,
-	onChange,
+  id = "custom-dropdown",
+  size = "",
+  placeholder = "Placeholder",
+  filled = true,
+  color = "white",
+  background = "secondary",
+  showPlaceholder = true,
+  width = "",
+  height = "100%",
+  items = [],
+  value,
+  onChange,
 }) => {
-	const classes = useStyles({ background });
-	return (
-		<Select
-			id={id}
-			value={value}
-			displayEmpty={showPlaceholder}
-			className={classes[`custom_${(filled ? "filled" : "outlined")}`]}
-			size={size}
-			style={{ color, width, height }}
-			autoWidth={!width}
-			classes={{
-				filled: classes[`custom_${(filled ? "filled" : "outlined")}`],
-				iconFilled: classes[`custom_${(filled ? "filled" : "outlined")}`],
-			}}
-			sx={{ ">.MuiOutlinedInput-notchedOutline": { border: (filled) ? "none" : "1px solid", borderColor: `${background}.main` } }}
-			renderValue={(selected) => (selected || placeholder)}
-			onChange={onChange}
-		>
-			{items.map((it) => (
-				<MenuItem key={it.text} value={it.value}>{it.text}</MenuItem>
-			))}
-		</Select>
-	);
+  // Generate styles dynamically based on props
+  const selectStyles = useMemo(() => {
+    const getBackgroundColor = (colorName) => {
+      // Handle theme palette colors or custom colors
+      if (typeof colorName === 'string' && colorName.includes('.')) {
+        return colorName;
+      }
+      return `${colorName}.main`;
+    };
+
+    const getDarkBackgroundColor = (colorName) => {
+      if (typeof colorName === 'string' && colorName.includes('.')) {
+        return colorName;
+      }
+      return `${colorName}.dark`;
+    };
+
+    const baseStyles = {
+      borderRadius: "10px",
+      minHeight: height,
+      "& .MuiSelect-select": {
+        color: color,
+      },
+      // Remove all border bottom styles
+      "&, &:before, &:after": {
+        borderBottom: "none !important",
+      },
+      "&:before": {
+        borderBottom: "none !important",
+      },
+      "&:hover:not(.Mui-disabled):before": {
+        borderBottom: "none !important",
+      },
+      "&:after": {
+        borderBottom: "none !important",
+      },
+    };
+
+    if (filled) {
+      return {
+        ...baseStyles,
+        backgroundColor: getBackgroundColor(background),
+        color: "white",
+        "&:hover": {
+          backgroundColor: getDarkBackgroundColor(background),
+        },
+        "&:focus": {
+          backgroundColor: getDarkBackgroundColor(background),
+        },
+        "&.Mui-focused": {
+          backgroundColor: getDarkBackgroundColor(background),
+        },
+        "& .MuiSelect-icon": {
+          color: "white",
+        },
+      };
+    } else {
+      return {
+        ...baseStyles,
+        backgroundColor: "transparent",
+        "& .MuiOutlinedInput-notchedOutline": {
+          borderColor: getBackgroundColor(background),
+          borderWidth: "1px",
+        },
+        "&:hover .MuiOutlinedInput-notchedOutline": {
+          borderColor: getBackgroundColor(background),
+        },
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+          borderColor: getBackgroundColor(background),
+        },
+      };
+    }
+  }, [filled, background, color, height]);
+
+  return (
+    <Select
+      id={id}
+      value={value}
+      displayEmpty={showPlaceholder}
+      size={size}
+      variant={filled ? "filled" : "outlined"}
+      sx={selectStyles}
+      style={{ 
+        width: width || "auto", 
+        minWidth: width ? undefined : "120px"
+      }}
+      renderValue={(selected) => selected || placeholder}
+      onChange={onChange}
+      MenuProps={{
+        PaperProps: {
+          sx: {
+            borderRadius: "8px",
+            marginTop: "4px",
+          }
+        }
+      }}
+    >
+      {items.map((item) => (
+        <MenuItem 
+          key={item.value || item.text} 
+          value={item.value}
+        >
+          {item.text}
+        </MenuItem>
+      ))}
+    </Select>
+  );
 };
 
 export default Dropdown;
