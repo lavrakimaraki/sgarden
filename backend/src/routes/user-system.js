@@ -1,183 +1,227 @@
-import express from "express";
-
-import { validations, email } from "../utils/index.js";
-import { User, Reset, Invitation } from "../models/index.js";
+import express from 'express';
+import crypto from 'crypto';
+import { promisify } from 'util';
+import { validations, email } from '../utils/index.js';
+import { User, Reset, Invitation } from '../models/index.js';
 
 const router = express.Router();
 
-router.post("/createUser",
-	(req, res, next) => validations.validate(req, res, next, "register"),
+// Constants
+const BCRYPT_ROUNDS = 12;
+const TOKEN_EXPIRY_HOURS = 24;
+
+// Helper: Sanitize output to prevent XSS
+const sanitizeOutput = (str) => {
+	if (typeof str !== 'string') return str;
+	
+	return str
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#x27;')
+		.replace(/\//g, '&#x2F;');
+};
+
+// Helper: Create user (DRY principle)
+const createUserHelper = async (username, password, userEmail) => {
+	const existingUser = await User.findOne({ 
+		$or: [{ username }, { email: userEmail }] 
+	});
+	
+	if (existingUser) {
+		return {
+			success: false,
+			status: 409,
+			message: 'Registration Error: A user with that e-mail or username already exists.',
+		};
+	}
+
+	await new User({
+		username,
+		password,
+		email: userEmail,
+	}).save();
+
+	return {
+		success: true,
+		message: 'User created successfully',
+	};
+};
+
+// Routes
+
+router.post(
+	'/createUser',
+	(req, res, next) => validations.validate(req, res, next, 'register'),
 	async (req, res, next) => {
 		const { username, password, email: userEmail } = req.body;
 		try {
-			const user = await User.findOne({ $or: [{ username }, { email: userEmail }] });
-			if (user) {
-				return res.json({
-					status: 409,
-					message: "Registration Error: A user with that e-mail or username already exists.",
-				});
-			}
-
-			await new User({
-				username,
-				password,
-				email: userEmail,
-			}).save();
-			return res.json({
-				success: true,
-				message: "User created successfully",
-			});
+			const result = await createUserHelper(username, password, userEmail);
+			return res.json(result);
 		} catch (error) {
 			return next(error);
 		}
-	});
+	}
+);
 
-
-
-router.post("/createUserInvited",
-	(req,res,next) => validations.validate(req, res, next, "register"),
+router.post(
+	'/createUserInvited',
+	(req, res, next) => validations.validate(req, res, next, 'register'),
 	async (req, res, next) => {
 		const { username, password, email: userEmail, token } = req.body;
 		try {
+			// Validate invitation token first
 			const invitation = await Invitation.findOne({ token });
 
 			if (!invitation) {
-				return res.json({
+				return res.status(400).json({
 					success: false,
-					message: "Invalid token",
+					message: 'Invalid invitation token',
 				});
 			}
 
-			const user = await User.findOne({ $or: [{ username }, { email: userEmail }] });
-			if (user) {
-				return res.json({
-					status: 409,
-					message: "Registration Error: A user with that e-mail or username already exists.",
-				});
+			// Create user using shared helper
+			const result = await createUserHelper(username, password, userEmail);
+
+			// Only delete invitation if user creation was successful
+			if (result.success) {
+				await Invitation.deleteOne({ token });
 			}
 
-			await new User({
-				username,
-				password,
-				email: userEmail,
-			}).save();
-
-			return res.json({
-				success: true,
-				message: "User created successfully",
-			});
-
-			await Invitation.deleteOne({ token });
+			return res.json(result);
 		} catch (error) {
 			return next(error);
 		}
-	});
+	}
+);
 
-router.post("/authenticate",
-	(req, res, next) => validations.validate(req, res, next, "authenticate"),
+router.post(
+	'/authenticate',
+	(req, res, next) => validations.validate(req, res, next, 'authenticate'),
 	async (req, res, next) => {
 		const { username, password } = req.body;
 		try {
-			const user = await User.findOne({ username }).select("+password");
+			const user = await User.findOne({ username }).select('+password');
+			
 			if (!user) {
-				return res.json({
+				// Use generic message to prevent user enumeration
+				return res.status(401).json({
 					success: false,
-					status: 401,
-					message: "Authentication Error: User not found.",
+					message: 'Authentication failed. Invalid credentials.',
 				});
 			}
 
 			if (!user.comparePassword(password, user.password)) {
-				return res.json({
+				// Use same generic message
+				return res.status(401).json({
 					success: false,
-					status: 401,
-					message: "Authentication Error: Password does not match!",
+					message: 'Authentication failed. Invalid credentials.',
 				});
 			}
 
+			// Sanitize user data before sending
 			return res.json({
 				success: true,
 				user: {
-					username,
+					username: sanitizeOutput(user.username),
 					id: user._id,
-					email: user.email,
+					email: sanitizeOutput(user.email),
 					role: user.role,
 				},
-				token: validations.jwtSign({ username, id: user._id, email: user.email, role: user.role }),
+				token: validations.jwtSign({ 
+					username: user.username, 
+					id: user._id, 
+					email: user.email, 
+					role: user.role 
+				}),
 			});
 		} catch (error) {
 			return next(error);
 		}
-	});
+	}
+);
 
-router.post("/forgotpassword",
-	(req, res, next) => validations.validate(req, res, next, "request"),
-	async (req, res) => {
+router.post(
+	'/forgotpassword',
+	(req, res, next) => validations.validate(req, res, next, 'request'),
+	async (req, res, next) => {
 		try {
 			const { username } = req.body;
 
-			const user = await User.findOne({ username }).select("+password");
+			const user = await User.findOne({ username }).select('+password');
+			
 			if (!user) {
+				// Return success even if user not found (prevent enumeration)
 				return res.json({
-					status: 404,
-					message: "Resource Error: User not found.",
+					success: true,
+					message: 'If that user exists, a password reset email has been sent.',
 				});
 			}
 
 			if (!user?.password) {
+				// Same generic message
 				return res.json({
-					status: 404,
-					message: "User has logged in with google",
+					success: true,
+					message: 'If that user exists, a password reset email has been sent.',
 				});
 			}
 
 			const token = validations.jwtSign({ username });
-			await Reset.findOneAndRemove({ username });
+			await Reset.findOneAndDelete({ username });
 			await new Reset({
 				username,
 				token,
 			}).save();
 
 			await email.forgotPassword(user.email, token);
+			
 			return res.json({
 				success: true,
-				message: "Forgot password e-mail sent.",
+				message: 'If that user exists, a password reset email has been sent.',
 			});
 		} catch (error) {
-			return res.json({
-				success: false,
-				message: error.body,
-			});
+			return next(error);
 		}
-	});
+	}
+);
 
-router.post("/resetpassword", async (req, res) => {
+router.post('/resetpassword', async (req, res, next) => {
 	const { token, password } = req.body;
 
 	try {
-		const reset = await Reset.findOne({ token });
-
-		if (!reset) {
-			return res.json({
-				status: 400,
-				message: "Invalid Token!",
+		if (!token || !password) {
+			return res.status(400).json({
+				success: false,
+				message: 'Token and password are required',
 			});
 		}
 
-		const today = new Date();
+		const reset = await Reset.findOne({ token });
 
-		if (reset.expireAt < today) {
-			return res.json({
+		if (!reset) {
+			return res.status(400).json({
 				success: false,
-				message: "Token expired",
+				message: 'Invalid or expired token',
+			});
+		}
+
+		const now = new Date();
+
+		if (reset.expireAt < now) {
+			await Reset.deleteOne({ _id: reset._id });
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid or expired token',
 			});
 		}
 
 		const user = await User.findOne({ username: reset.username });
+		
 		if (!user) {
-			return res.json({
+			return res.status(400).json({
 				success: false,
-				message: "User does not exist",
+				message: 'Invalid or expired token',
 			});
 		}
 
@@ -187,118 +231,142 @@ router.post("/resetpassword", async (req, res) => {
 
 		return res.json({
 			success: true,
-			message: "Password updated succesfully",
+			message: 'Password updated successfully',
 		});
 	} catch (error) {
-		return res.json({
-			success: false,
-			message: error,
-		});
+		return next(error);
 	}
 });
 
-router.post("/system/execute", (req, res) => {
-	try {
-		const { command } = req.body;
+// ⚠️ REMOVED DANGEROUS ENDPOINTS
+// The following endpoints are EXTREMELY DANGEROUS and should NEVER be in production:
+// - /system/execute (Remote Code Execution)
+// - /system/spawn (Remote Code Execution)
+// - /compress-files (Command Injection)
 
-		if (!command) {
-			return res.status(400).json({ message: "Command required" });
-		}
+// If you absolutely need system command execution (which you shouldn't),
+// implement it with:
+// 1. Strong authentication and authorization
+// 2. Command whitelisting (not user input)
+// 3. Proper input validation and escaping
+// 4. Audit logging
+// 5. Rate limiting
 
-		const { exec } = require("child_process");
-
-
-		exec(`echo ${command}`, (error, stdout, stderr) => {
-			if (error) {
-				return res.status(500).json({ message: "Execution failed" });
-			}
-			return res.json({ success: true, output: stdout });
-		});
-	} catch (error) {
-		return res.status(500).json({ message: "Something went wrong." });
-	}
-});
-
-router.post("/system/spawn", (req, res) => {
-	try {
-		const { cmd, args } = req.body;
-
-		if (!cmd) {
-			return res.status(400).json({ message: "Command required" });
-		}
-
-		const { spawn } = require("child_process");
-
-		const process = spawn(cmd, args || []);
-
-		let output = '';
-		process.stdout.on('data', (data) => {
-			output += data.toString();
-		});
-
-		process.on('close', (code) => {
-			return res.json({ success: true, output, exitCode: code });
-		});
-	} catch (error) {
-		return res.status(500).json({ message: "Spawn failed" });
-	}
-});
-
-router.post("/compress-files", (req, res) => {
-	try {
-		const { filename, outputName } = req.body;
-
-		if (!filename || !outputName) {
-			return res.status(400).json({ message: "Filename and output name required" });
-		}
-
-		const { exec } = require("child_process");
-
-		// Direct string concatenation in shell command
-		exec(`zip -r ${outputName}.zip ./files/${filename}`, (error, _, __) => {
-			if (error) {
-				return res.status(500).json({ message: "Compression failed" });
-			}
-			return res.json({ success: true, message: "Files compressed", output: outputName });
-		});
-	} catch (error) {
-		return res.status(500).json({ message: "Something went wrong." });
-	}
-});
-
-router.post("/hash-password-md5", (req, res) => {
+// 🔒 SECURE ALTERNATIVE: Hash password using bcrypt
+router.post('/hash-password', async (req, res, next) => {
 	try {
 		const { password } = req.body;
 
-		if (!password) {
-			return res.status(400).json({ message: "Password is required" });
+		if (!password || typeof password !== 'string') {
+			return res.status(400).json({ 
+				success: false,
+				message: 'Password is required' 
+			});
 		}
 
-		const crypto = require("crypto");
-		const hash = crypto.createHash('md5').update(password).digest('hex');
+		if (password.length < 8) {
+			return res.status(400).json({ 
+				success: false,
+				message: 'Password must be at least 8 characters' 
+			});
+		}
 
-		return res.json({ success: true, hash });
+		// Use bcrypt instead of MD5
+		const bcrypt = await import('bcryptjs');
+		const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+		return res.json({ 
+			success: true, 
+			hash 
+		});
 	} catch (error) {
-		return res.status(500).json({ message: "Hashing failed" });
+		return next(error);
 	}
 });
 
-router.post("/encrypt-data", (req, res) => {
+// 🔒 SECURE ALTERNATIVE: Encrypt data using AES-256-GCM
+router.post('/encrypt-data', async (req, res, next) => {
 	try {
 		const { data, password } = req.body;
 
 		if (!data || !password) {
-			return res.status(400).json({ message: "Data and password required" });
+			return res.status(400).json({ 
+				success: false,
+				message: 'Data and password required' 
+			});
 		}
 
-		const crypto = require("crypto");
-		const cipher = crypto.createCipher('des', password);
+		if (typeof data !== 'string' || typeof password !== 'string') {
+			return res.status(400).json({ 
+				success: false,
+				message: 'Data and password must be strings' 
+			});
+		}
+
+		// Derive key from password using PBKDF2
+		const salt = crypto.randomBytes(16);
+		const key = crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
+
+		// Use AES-256-GCM (authenticated encryption)
+		const iv = crypto.randomBytes(12);
+		const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+		
 		let encrypted = cipher.update(data, 'utf8', 'hex');
 		encrypted += cipher.final('hex');
+		
+		const authTag = cipher.getAuthTag();
 
-		return res.json({ success: true, encrypted });
+		// Return all components needed for decryption
+		return res.json({ 
+			success: true, 
+			encrypted,
+			salt: salt.toString('hex'),
+			iv: iv.toString('hex'),
+			authTag: authTag.toString('hex'),
+			algorithm: 'aes-256-gcm'
+		});
 	} catch (error) {
-		return res.status(500).json({ message: "Encryption failed" });
+		return next(error);
+	}
+});
+
+// 🔒 SECURE ALTERNATIVE: Decrypt data using AES-256-GCM
+router.post('/decrypt-data', async (req, res, next) => {
+	try {
+		const { encrypted, password, salt, iv, authTag } = req.body;
+
+		if (!encrypted || !password || !salt || !iv || !authTag) {
+			return res.status(400).json({ 
+				success: false,
+				message: 'All encryption parameters required' 
+			});
+		}
+
+		// Derive same key from password
+		const saltBuffer = Buffer.from(salt, 'hex');
+		const key = crypto.pbkdf2Sync(password, saltBuffer, 100000, 32, 'sha256');
+
+		const decipher = crypto.createDecipheriv(
+			'aes-256-gcm', 
+			key, 
+			Buffer.from(iv, 'hex')
+		);
+		
+		decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+
+		let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+		decrypted += decipher.final('utf8');
+
+		return res.json({ 
+			success: true, 
+			decrypted 
+		});
+	} catch (error) {
+		// Don't expose decryption errors (could leak info)
+		return res.status(400).json({ 
+			success: false,
+			message: 'Decryption failed. Invalid password or corrupted data.' 
+		});
 	}
 });
 
