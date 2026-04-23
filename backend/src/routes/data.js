@@ -1,12 +1,14 @@
 import express from 'express';
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, extname, basename, resolve, normalize } from 'path';
+import { promises as fs } from 'fs';
+import { existsSync, statSync } from 'fs';
+import { extname, resolve, normalize, sep } from 'path';
 
 const router = express.Router({ mergeParams: true });
 
 // Constants
 const MAX_CONTENT_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_TEMPLATE_SIZE = 10_000; // 10KB
+const MAX_FILENAME_LENGTH = 255;
 const ALLOWED_REPORT_EXTENSIONS = ['.pdf', '.xlsx', '.docx', '.txt', '.csv'];
 const ALLOWED_UPLOAD_EXTENSIONS = ['.txt', '.csv', '.json', '.xml'];
 const ALLOWED_TEMPLATE_EXTENSIONS = ['.html', '.htm'];
@@ -21,19 +23,73 @@ const logger = {
 	},
 };
 
-// Security: Path validation helper to prevent directory traversal
+/**
+ * Sanitize filename - removes path separators and dangerous characters
+ * This prevents path traversal attacks at the filename level
+ */
+const sanitizeFilename = (filename) => {
+	if (!filename || typeof filename !== 'string') {
+		throw new Error('Invalid filename');
+	}
+
+	// Remove any path separators, null bytes, and control characters
+	let sanitized = filename
+		.replace(/[/\\]/g, '') // Remove / and \
+		.replace(/\.\./g, '') // Remove ..
+		.replace(/\0/g, '') // Remove null bytes
+		.replace(/[\x00-\x1f\x80-\x9f]/g, '') // Remove control characters
+		.trim();
+
+	// Ensure the filename doesn't start with a dot (hidden files)
+	if (sanitized.startsWith('.')) {
+		sanitized = sanitized.slice(1);
+	}
+
+	// Ensure filename is not empty after sanitization
+	if (!sanitized || sanitized.length === 0) {
+		throw new Error('Invalid filename after sanitization');
+	}
+
+	// Limit filename length
+	if (sanitized.length > MAX_FILENAME_LENGTH) {
+		throw new Error('Filename too long');
+	}
+
+	return sanitized;
+};
+
+/**
+ * Security: Path validation helper to prevent directory traversal
+ * Returns a validated, safe absolute path within the allowed directory
+ */
 const validateFilePath = (userPath, allowedDir) => {
 	if (!userPath || typeof userPath !== 'string') {
 		throw new Error('Invalid file path');
 	}
 
-	// Remove any path traversal attempts and normalize
-	const safePath = normalize(userPath).replace(/^(\.\.[\\/])+/, '');
-	const fullPath = resolve(join(allowedDir, safePath));
+	// First, sanitize the user path to remove obvious traversal attempts
+	const sanitized = userPath
+		.replace(/\0/g, '') // Remove null bytes
+		.replace(/[\x00-\x1f\x80-\x9f]/g, ''); // Remove control characters
+
+	// Normalize and remove leading traversal attempts
+	const normalized = normalize(sanitized).replace(/^(\.\.[\\/])+/, '');
+
+	// Get absolute path of allowed directory
 	const allowedDirResolved = resolve(allowedDir);
 
-	// Ensure the resolved path is within the allowed directory
-	if (!fullPath.startsWith(allowedDirResolved)) {
+	// Construct the full path using resolve (safer than join)
+	const fullPath = resolve(allowedDirResolved, normalized);
+
+	// Critical: Ensure the resolved path is within the allowed directory
+	// MUST include path separator to prevent partial directory name matches
+	if (!fullPath.startsWith(allowedDirResolved + sep) && fullPath !== allowedDirResolved) {
+		throw new Error('Path traversal attempt detected');
+	}
+
+	// Additional check: ensure no parent directory references in the final path
+	const relativePath = fullPath.substring(allowedDirResolved.length);
+	if (relativePath.includes('..')) {
 		throw new Error('Path traversal attempt detected');
 	}
 
@@ -63,18 +119,21 @@ const generateRandomData = (min = 0, max = 10) => {
 const renderTemplate = (templateString, data) => {
 	let result = templateString;
 
+	// Pre-compile escape function for better performance
+	const escapeHtml = (str) => {
+		return String(str)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#x27;');
+	};
+
 	for (const key of ALLOWED_TEMPLATE_KEYS) {
 		if (data[key] !== undefined) {
-			// Escape any potential HTML/script content
-			const safeValue = String(data[key])
-				.replace(/&/g, '&amp;')
-				.replace(/</g, '&lt;')
-				.replace(/>/g, '&gt;')
-				.replace(/"/g, '&quot;')
-				.replace(/'/g, '&#x27;');
-
-			const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
-			result = result.replace(regex, safeValue);
+			const safeValue = escapeHtml(data[key]);
+			// Use string replacement instead of regex for better performance
+			result = result.split(`\${${key}}`).join(safeValue);
 		}
 	}
 
@@ -118,7 +177,7 @@ router.get('/', async (_req, res) => {
 	}
 });
 
-router.get('/download-report', (req, res) => {
+router.get('/download-report', async (req, res) => {
 	try {
 		const { reportName } = req.query;
 
@@ -126,28 +185,35 @@ router.get('/download-report', (req, res) => {
 			return res.status(400).json({ message: 'Report name required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(reportName);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(reportName, ALLOWED_REPORT_EXTENSIONS)) {
+		if (!validateFileExtension(safeFilename, ALLOWED_REPORT_EXTENSIONS)) {
 			return res.status(400).json({ message: 'File type not allowed' });
 		}
 
-		// Security: Prevent path traversal
-		const reportPath = validateFilePath(reportName, './reports');
+		// Security: Prevent path traversal - use sanitized filename
+		const reportPath = validateFilePath(safeFilename, './reports');
 
 		if (!existsSync(reportPath)) {
 			return res.status(404).json({ message: 'Report not found' });
 		}
 
-		const content = readFileSync(reportPath);
+		// Use async file read
+		const content = await fs.readFile(reportPath);
 
-		// Security: Sanitize filename for download
-		const safeFilename = basename(reportName);
+		// Security: Use sanitized filename for Content-Disposition
 		res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+		res.setHeader('X-Content-Type-Options', 'nosniff');
 		return res.send(content);
 	} catch (error) {
 		logger.error('Error in download-report:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Report not found' });
@@ -156,7 +222,7 @@ router.get('/download-report', (req, res) => {
 	}
 });
 
-router.get('/render-page', (req, res) => {
+router.get('/render-page', async (req, res) => {
 	try {
 		const { template } = req.query;
 
@@ -164,24 +230,36 @@ router.get('/render-page', (req, res) => {
 			return res.status(400).json({ message: 'Template name required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeTemplate = sanitizeFilename(template);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(template, ALLOWED_TEMPLATE_EXTENSIONS)) {
+		if (!validateFileExtension(safeTemplate, ALLOWED_TEMPLATE_EXTENSIONS)) {
 			return res.status(400).json({ message: 'Only HTML templates allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const templatePath = validateFilePath(template, './templates');
+		const templatePath = validateFilePath(safeTemplate, './templates');
 
 		if (!existsSync(templatePath)) {
 			return res.status(404).json({ message: 'Template not found' });
 		}
 
-		const templateContent = readFileSync(templatePath, 'utf8');
+		// Use async file read
+		const templateContent = await fs.readFile(templatePath, 'utf8');
+
+		// Security: Set Content-Security-Policy to prevent XSS
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';");
+		res.setHeader('X-Content-Type-Options', 'nosniff');
+		res.setHeader('X-Frame-Options', 'DENY');
 		return res.send(templateContent);
 	} catch (error) {
 		logger.error('Error in render-page:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid template name' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Template not found' });
@@ -190,7 +268,7 @@ router.get('/render-page', (req, res) => {
 	}
 });
 
-router.post('/upload-file', (req, res) => {
+router.post('/upload-file', async (req, res) => {
 	try {
 		const { filename, content, destination } = req.body;
 
@@ -198,8 +276,11 @@ router.post('/upload-file', (req, res) => {
 			return res.status(400).json({ message: 'Filename and content required' });
 		}
 
+		// Security: Sanitize filename FIRST - CRITICAL
+		const safeFilename = sanitizeFilename(filename);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(filename, ALLOWED_UPLOAD_EXTENSIONS)) {
+		if (!validateFileExtension(safeFilename, ALLOWED_UPLOAD_EXTENSIONS)) {
 			return res.status(400).json({ message: 'File type not allowed' });
 		}
 
@@ -208,28 +289,37 @@ router.post('/upload-file', (req, res) => {
 			return res.status(400).json({ message: 'File too large (max 5MB)' });
 		}
 
-		// Security: Sanitize filename and destination
-		const safeFilename = basename(filename);
+		// Security: Handle destination directory
 		const baseUploadDir = './uploads';
-		let uploadDir = baseUploadDir;
+		let validatedUploadDir = resolve(baseUploadDir);
 
 		if (destination) {
 			if (typeof destination !== 'string') {
 				return res.status(400).json({ message: 'Invalid destination' });
 			}
-			uploadDir = validateFilePath(destination, baseUploadDir);
+			// Validate destination is within base upload directory
+			validatedUploadDir = validateFilePath(destination, baseUploadDir);
 		}
 
-		if (!existsSync(uploadDir)) {
+		if (!existsSync(validatedUploadDir)) {
 			return res.status(400).json({ message: 'Upload directory does not exist' });
 		}
 
-		const uploadPath = join(uploadDir, safeFilename);
-		writeFileSync(uploadPath, content);
+		// CRITICAL: Use validated directory + sanitized filename
+		const uploadPath = resolve(validatedUploadDir, safeFilename);
+
+		// Double-check the final path is still within the upload directory
+		if (!uploadPath.startsWith(validatedUploadDir + sep)) {
+			throw new Error('Path traversal attempt detected');
+		}
+
+		// Use async file write
+		await fs.writeFile(uploadPath, content);
 
 		return res.json({
 			success: true,
-			path: uploadPath,
+			// Security: Don't expose full server path
+			filename: safeFilename,
 			message: 'File uploaded successfully',
 		});
 	} catch (error) {
@@ -237,11 +327,14 @@ router.post('/upload-file', (req, res) => {
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
 		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
+		}
 		return res.status(500).json({ message: 'Upload failed' });
 	}
 });
 
-router.get('/export-csv', (req, res) => {
+router.get('/export-csv', async (req, res) => {
 	try {
 		const { dataFile } = req.query;
 
@@ -249,29 +342,35 @@ router.get('/export-csv', (req, res) => {
 			return res.status(400).json({ message: 'Data file required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(dataFile);
+
 		// Security: Validate file extension properly
-		if (extname(dataFile).toLowerCase() !== '.csv') {
+		if (extname(safeFilename).toLowerCase() !== '.csv') {
 			return res.status(400).json({ message: 'Only CSV files allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const csvPath = validateFilePath(dataFile, './data');
+		const csvPath = validateFilePath(safeFilename, './data');
 
 		if (!existsSync(csvPath)) {
 			return res.status(404).json({ message: 'CSV file not found' });
 		}
 
-		const csvData = readFileSync(csvPath, 'utf8');
+		// Use async file read
+		const csvData = await fs.readFile(csvPath, 'utf8');
 
 		res.setHeader('Content-Type', 'text/csv');
-		// Security: Sanitize filename for download
-		const safeFilename = basename(dataFile);
 		res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+		res.setHeader('X-Content-Type-Options', 'nosniff');
 		return res.send(csvData);
 	} catch (error) {
 		logger.error('Error in export-csv:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'CSV file not found' });
@@ -280,7 +379,7 @@ router.get('/export-csv', (req, res) => {
 	}
 });
 
-router.get('/browse-files', (req, res) => {
+router.get('/browse-files', async (req, res) => {
 	try {
 		const { directory } = req.query;
 
@@ -295,19 +394,30 @@ router.get('/browse-files', (req, res) => {
 			return res.status(404).json({ message: 'Directory not found' });
 		}
 
-		const files = readdirSync(dirPath);
+		// Use async directory read
+		const files = await fs.readdir(dirPath);
 
-		const fileList = files.map((file) => {
-			const filePath = join(dirPath, file);
-			const stats = statSync(filePath);
+		const fileList = await Promise.all(
+			files.map(async (file) => {
+				// Security: Sanitize each filename from directory listing
+				const safeFile = sanitizeFilename(file);
+				const filePath = resolve(dirPath, safeFile);
 
-			return {
-				name: file,
-				size: stats.size,
-				isDirectory: stats.isDirectory(),
-				modified: stats.mtime,
-			};
-		});
+				// Ensure the file is still within the allowed directory
+				if (!filePath.startsWith(dirPath + sep)) {
+					throw new Error('Path traversal attempt detected');
+				}
+
+				const stats = statSync(filePath);
+
+				return {
+					name: safeFile,
+					size: stats.size,
+					isDirectory: stats.isDirectory(),
+					modified: stats.mtime,
+				};
+			})
+		);
 
 		return res.json({ success: true, files: fileList });
 	} catch (error) {
@@ -322,7 +432,7 @@ router.get('/browse-files', (req, res) => {
 	}
 });
 
-router.get('/config/load', (req, res) => {
+router.get('/config/load', async (req, res) => {
 	try {
 		const { configFile } = req.query;
 
@@ -330,19 +440,23 @@ router.get('/config/load', (req, res) => {
 			return res.status(400).json({ message: 'Config file required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(configFile);
+
 		// Security: Validate file extension properly
-		if (extname(configFile).toLowerCase() !== '.json') {
+		if (extname(safeFilename).toLowerCase() !== '.json') {
 			return res.status(400).json({ message: 'Only JSON config files allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const configPath = validateFilePath(configFile, './config');
+		const configPath = validateFilePath(safeFilename, './config');
 
 		if (!existsSync(configPath)) {
 			return res.status(404).json({ message: 'Config file not found' });
 		}
 
-		const configContent = readFileSync(configPath, 'utf8');
+		// Use async file read
+		const configContent = await fs.readFile(configPath, 'utf8');
 
 		// Security: Validate JSON before parsing
 		let config;
@@ -358,6 +472,9 @@ router.get('/config/load', (req, res) => {
 		logger.error('Error in config/load:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid config filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Config file not found' });
