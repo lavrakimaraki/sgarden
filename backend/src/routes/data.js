@@ -1,6 +1,6 @@
 import express from 'express';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, extname, basename, resolve, normalize } from 'path';
+import { join, extname, basename, resolve, normalize, sep } from 'path';
 
 const router = express.Router({ mergeParams: true });
 
@@ -21,19 +21,75 @@ const logger = {
 	},
 };
 
-// Security: Path validation helper to prevent directory traversal
+/**
+ * Sanitize filename - removes path separators and dangerous characters
+ * This prevents path traversal attacks at the filename level
+ */
+const sanitizeFilename = (filename) => {
+	if (!filename || typeof filename !== 'string') {
+		throw new Error('Invalid filename');
+	}
+
+	// Remove any path separators, null bytes, and control characters
+	let sanitized = filename
+		.replace(/[/\\]/g, '') // Remove / and \
+		.replace(/\.\./g, '') // Remove ..
+		.replace(/\0/g, '') // Remove null bytes
+		.replace(/[\x00-\x1f\x80-\x9f]/g, '') // Remove control characters
+		.trim();
+
+	// Ensure the filename doesn't start with a dot (hidden files)
+	if (sanitized.startsWith('.')) {
+		sanitized = sanitized.slice(1);
+	}
+
+	// Ensure filename is not empty after sanitization
+	if (!sanitized || sanitized.length === 0) {
+		throw new Error('Invalid filename after sanitization');
+	}
+
+	// Limit filename length
+	if (sanitized.length > 255) {
+		throw new Error('Filename too long');
+	}
+
+	return sanitized;
+};
+
+/**
+ * Security: Path validation helper to prevent directory traversal
+ * Returns a validated, safe absolute path within the allowed directory
+ */
 const validateFilePath = (userPath, allowedDir) => {
 	if (!userPath || typeof userPath !== 'string') {
 		throw new Error('Invalid file path');
 	}
 
-	// Remove any path traversal attempts and normalize
-	const safePath = normalize(userPath).replace(/^(\.\.[\\/])+/, '');
-	const fullPath = resolve(join(allowedDir, safePath));
+	// First, sanitize the user path to remove obvious traversal attempts
+	const sanitized = userPath
+		.replace(/\0/g, '') // Remove null bytes
+		.replace(/[\x00-\x1f\x80-\x9f]/g, ''); // Remove control characters
+
+	// Normalize and remove leading traversal attempts
+	const normalized = normalize(sanitized).replace(/^(\.\.[\\/])+/, '');
+
+	// Get absolute path of allowed directory
 	const allowedDirResolved = resolve(allowedDir);
 
-	// Ensure the resolved path is within the allowed directory
-	if (!fullPath.startsWith(allowedDirResolved)) {
+	// Construct the full path (DO NOT use user input directly in join)
+	// Instead, use the normalized and sanitized path
+	const fullPath = resolve(allowedDirResolved, normalized);
+
+	// Critical: Ensure the resolved path is within the allowed directory
+	// Use path.relative to check if we escaped the allowed directory
+	const relativePath = fullPath.substring(allowedDirResolved.length);
+	
+	if (!fullPath.startsWith(allowedDirResolved + sep) && fullPath !== allowedDirResolved) {
+		throw new Error('Path traversal attempt detected');
+	}
+
+	// Additional check: ensure no parent directory references in the final path
+	if (relativePath.includes('..')) {
 		throw new Error('Path traversal attempt detected');
 	}
 
@@ -126,13 +182,16 @@ router.get('/download-report', (req, res) => {
 			return res.status(400).json({ message: 'Report name required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(reportName);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(reportName, ALLOWED_REPORT_EXTENSIONS)) {
+		if (!validateFileExtension(safeFilename, ALLOWED_REPORT_EXTENSIONS)) {
 			return res.status(400).json({ message: 'File type not allowed' });
 		}
 
-		// Security: Prevent path traversal
-		const reportPath = validateFilePath(reportName, './reports');
+		// Security: Prevent path traversal - use sanitized filename
+		const reportPath = validateFilePath(safeFilename, './reports');
 
 		if (!existsSync(reportPath)) {
 			return res.status(404).json({ message: 'Report not found' });
@@ -140,14 +199,16 @@ router.get('/download-report', (req, res) => {
 
 		const content = readFileSync(reportPath);
 
-		// Security: Sanitize filename for download
-		const safeFilename = basename(reportName);
+		// Use already sanitized filename for Content-Disposition
 		res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
 		return res.send(content);
 	} catch (error) {
 		logger.error('Error in download-report:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Report not found' });
@@ -164,13 +225,16 @@ router.get('/render-page', (req, res) => {
 			return res.status(400).json({ message: 'Template name required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeTemplate = sanitizeFilename(template);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(template, ALLOWED_TEMPLATE_EXTENSIONS)) {
+		if (!validateFileExtension(safeTemplate, ALLOWED_TEMPLATE_EXTENSIONS)) {
 			return res.status(400).json({ message: 'Only HTML templates allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const templatePath = validateFilePath(template, './templates');
+		const templatePath = validateFilePath(safeTemplate, './templates');
 
 		if (!existsSync(templatePath)) {
 			return res.status(404).json({ message: 'Template not found' });
@@ -182,6 +246,9 @@ router.get('/render-page', (req, res) => {
 		logger.error('Error in render-page:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid template name' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Template not found' });
@@ -198,8 +265,11 @@ router.post('/upload-file', (req, res) => {
 			return res.status(400).json({ message: 'Filename and content required' });
 		}
 
+		// Security: Sanitize filename FIRST - CRITICAL
+		const safeFilename = sanitizeFilename(filename);
+
 		// Security: Validate file extension
-		if (!validateFileExtension(filename, ALLOWED_UPLOAD_EXTENSIONS)) {
+		if (!validateFileExtension(safeFilename, ALLOWED_UPLOAD_EXTENSIONS)) {
 			return res.status(400).json({ message: 'File type not allowed' });
 		}
 
@@ -208,34 +278,46 @@ router.post('/upload-file', (req, res) => {
 			return res.status(400).json({ message: 'File too large (max 5MB)' });
 		}
 
-		// Security: Sanitize filename and destination
-		const safeFilename = basename(filename);
+		// Security: Handle destination directory
 		const baseUploadDir = './uploads';
-		let uploadDir = baseUploadDir;
+		let validatedUploadDir = resolve(baseUploadDir);
 
 		if (destination) {
 			if (typeof destination !== 'string') {
 				return res.status(400).json({ message: 'Invalid destination' });
 			}
-			uploadDir = validateFilePath(destination, baseUploadDir);
+			// Validate destination is within base upload directory
+			validatedUploadDir = validateFilePath(destination, baseUploadDir);
 		}
 
-		if (!existsSync(uploadDir)) {
+		if (!existsSync(validatedUploadDir)) {
 			return res.status(400).json({ message: 'Upload directory does not exist' });
 		}
 
-		const uploadPath = join(uploadDir, safeFilename);
+		// CRITICAL: Use validated directory + sanitized filename
+		// DO NOT use join with user input directly
+		const uploadPath = resolve(validatedUploadDir, safeFilename);
+
+		// Double-check the final path is still within the upload directory
+		if (!uploadPath.startsWith(validatedUploadDir + sep)) {
+			throw new Error('Path traversal attempt detected');
+		}
+
 		writeFileSync(uploadPath, content);
 
 		return res.json({
 			success: true,
-			path: uploadPath,
+			// Don't expose full server path
+			filename: safeFilename,
 			message: 'File uploaded successfully',
 		});
 	} catch (error) {
 		logger.error('Error in upload-file:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
 		}
 		return res.status(500).json({ message: 'Upload failed' });
 	}
@@ -249,13 +331,16 @@ router.get('/export-csv', (req, res) => {
 			return res.status(400).json({ message: 'Data file required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(dataFile);
+
 		// Security: Validate file extension properly
-		if (extname(dataFile).toLowerCase() !== '.csv') {
+		if (extname(safeFilename).toLowerCase() !== '.csv') {
 			return res.status(400).json({ message: 'Only CSV files allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const csvPath = validateFilePath(dataFile, './data');
+		const csvPath = validateFilePath(safeFilename, './data');
 
 		if (!existsSync(csvPath)) {
 			return res.status(404).json({ message: 'CSV file not found' });
@@ -264,14 +349,15 @@ router.get('/export-csv', (req, res) => {
 		const csvData = readFileSync(csvPath, 'utf8');
 
 		res.setHeader('Content-Type', 'text/csv');
-		// Security: Sanitize filename for download
-		const safeFilename = basename(dataFile);
 		res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
 		return res.send(csvData);
 	} catch (error) {
 		logger.error('Error in export-csv:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'CSV file not found' });
@@ -298,11 +384,20 @@ router.get('/browse-files', (req, res) => {
 		const files = readdirSync(dirPath);
 
 		const fileList = files.map((file) => {
-			const filePath = join(dirPath, file);
+			// Security: Sanitize each filename from directory listing
+			// Even though these come from the filesystem, still validate
+			const safeFile = sanitizeFilename(file);
+			const filePath = resolve(dirPath, safeFile);
+
+			// Ensure the file is still within the allowed directory
+			if (!filePath.startsWith(dirPath + sep)) {
+				throw new Error('Path traversal attempt detected');
+			}
+
 			const stats = statSync(filePath);
 
 			return {
-				name: file,
+				name: safeFile,
 				size: stats.size,
 				isDirectory: stats.isDirectory(),
 				modified: stats.mtime,
@@ -330,13 +425,16 @@ router.get('/config/load', (req, res) => {
 			return res.status(400).json({ message: 'Config file required' });
 		}
 
+		// Security: Sanitize filename FIRST
+		const safeFilename = sanitizeFilename(configFile);
+
 		// Security: Validate file extension properly
-		if (extname(configFile).toLowerCase() !== '.json') {
+		if (extname(safeFilename).toLowerCase() !== '.json') {
 			return res.status(400).json({ message: 'Only JSON config files allowed' });
 		}
 
 		// Security: Prevent path traversal
-		const configPath = validateFilePath(configFile, './config');
+		const configPath = validateFilePath(safeFilename, './config');
 
 		if (!existsSync(configPath)) {
 			return res.status(404).json({ message: 'Config file not found' });
@@ -358,6 +456,9 @@ router.get('/config/load', (req, res) => {
 		logger.error('Error in config/load:', error);
 		if (error.message && error.message.includes('Path traversal')) {
 			return res.status(403).json({ message: 'Access denied' });
+		}
+		if (error.message && error.message.includes('Invalid filename')) {
+			return res.status(400).json({ message: 'Invalid config filename' });
 		}
 		if (error.code === 'ENOENT') {
 			return res.status(404).json({ message: 'Config file not found' });
