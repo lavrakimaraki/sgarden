@@ -1,13 +1,13 @@
-const forgotPassword = (to, token) => {
+const forgotPassword = (_, __) => {
 	// Not implemented yet
 	return;
 };
 
-const inviteUser = (to, token) => {
+const inviteUser = (_, __) => {
 	// Not implemented yet
 	return;
 };
-
+// to, token
 const email = {
 	forgotPassword,
 	inviteUser,

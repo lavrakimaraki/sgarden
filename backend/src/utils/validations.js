@@ -6,7 +6,7 @@ import validationSchemas from "./validation-schemas.js";
 
 const { compareSync, hashSync, genSaltSync } = bcrypt;
 
-const title = "Utility helpers";
+const _ = "Utility helpers";
 
 const helpers = {
 	passwordDigest: (password, saltWorkFactor = 10) => pipe(

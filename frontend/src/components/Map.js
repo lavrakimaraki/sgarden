@@ -1,19 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ComposableMap, Geographies, Geography, Annotation, Graticule, Line, ZoomableGroup, Marker } from "react-simple-maps";
-import { makeStyles } from "@mui/styles";
-import { memo } from "react";
-
-import colors from "../_colors.scss";
+import React, { useEffect, useRef, useState, memo } from "react";
+import { ComposableMap, Geographies, Geography, Annotation, Graticule, Line, Marker } from "react-simple-maps";
 import { Grid } from "@mui/material";
 
-const useStyles = makeStyles(() => ({
-	accordion: {
-		width: "100%!important",
-		borderRadius: "10px!important",
-		backgroundColor: "transparent",
-		boxShadow: "none",
-	},
-}));
+import colors from "../_colors.scss";
 
 /*
 	Projection types:
@@ -78,15 +67,14 @@ const Map = ({
 	const [mapWidth, setMapWidth] = useState(0);
 	const [mapHeight, setMapHeight] = useState(0);
 	const containerRef = useRef(null);
-	const classes = useStyles();
 
 	useEffect(() => {
-		if (containerRef?.current) {
-			const { width, height } = containerRef.current.getBoundingClientRect();
-			setMapWidth(width);
-			setMapHeight(height);
+		if (containerRef.current) {
+			const { width: w, height: h } = containerRef.current.getBoundingClientRect();
+			setMapWidth(w);
+			setMapHeight(h);
 		}
-	}, [containerRef.current]);
+	}, []); // Empty dependency array - only run on mount
 
 	return (
 		<Grid ref={containerRef} style={{ width, height }}>
@@ -100,94 +88,92 @@ const Map = ({
 					center,
 				}}
 			>
-				{/* <ZoomableGroup center={[0, 0]} zoom={9}> */}
-					{guides?.back && <Graticule {...guides} />}
-					<Geographies geography="/map.json">
-						{({ geographies }) =>
-							geographies.map((geo) => (
-								<Geography
-									key={geo.rsmKey}
-									geography={geo}
-									stroke={
-										typeof countriesStroke === "string"
-											? countriesStroke
-											: countriesStroke[geo.properties.name] || countriesStroke?.default || "white"
-									}
-									strokeWidth={
-										typeof countriesStrokeWidth === "number"
-											? countriesStrokeWidth
-											: countriesStrokeWidth[geo.properties.name] || countriesStrokeWidth?.default || 0.5
-									}
-									style={{
-										default: {
-											fill: 
-												typeof countriesFill === "string"
-													? countriesFill
-													: countriesFill[geo.properties.name] || countriesFill?.default || "black"
-											
-										},
-										hover: {
-											fill: 
-												typeof countriesFillHover === "string"
-													? countriesFillHover
-													: countriesFillHover[geo.properties.name] || countriesFillHover?.default || "black"
-											
-										},
-										pressed: {
-											fill: 
-												typeof countriesFillPressed === "string"
-													? countriesFillPressed
-													: countriesFillPressed[geo.properties.name] || countriesFillPressed?.default || "black"
-											
-										},
-									}}
-								/>
-							)
-						)}
-					</Geographies>
-					{guides?.front && <Graticule {...guides} />}
-					{lines.map((line, index) => (
-						<Line
-							key={`line-${index}`}
-							from={line.from}
-							to={line.to}
-							stroke={line.stroke}
-							strokeWidth={line.strokeWidth}
-							strokeLinecap={line.strokeLinecap}
-						/>
-					))}
-					{markers.map((marker, index) => (
-						<Marker
-							key={`marker-${index}`}
-							coordinates={marker.coordinates}
-							style={{
-								default: { fill: marker.fill || "red" },
-								hover: { fill: marker.hover || "blue" },
-								pressed: { fill: marker.pressed || "orange" },
-							}}
-						>
-							{/* <text textAnchor="middle" fill="#F53">
-								USA
-							</text> */}
-
-							<circle r={8} fill="#F53" />
-						</Marker>
-					))}
-					<Annotation
-						subject={[2.3522, 48.8566]}
-						dx={-90}
-						dy={-30}
-						connectorProps={{
-							stroke: "#FF5533",
-							strokeWidth: 3,
-							strokeLinecap: "round"
+				{guides?.back && <Graticule {...guides} />}
+				<Geographies geography="/map.json">
+					{({ geographies }) =>
+						geographies.map((geo) => (
+							<Geography
+								key={geo.rsmKey}
+								geography={geo}
+								stroke={
+									typeof countriesStroke === "string"
+										? countriesStroke
+										: countriesStroke[geo.properties.name] || countriesStroke?.default || "white"
+								}
+								strokeWidth={
+									typeof countriesStrokeWidth === "number"
+										? countriesStrokeWidth
+										: countriesStrokeWidth[geo.properties.name] || countriesStrokeWidth?.default || 0.5
+								}
+								style={{
+									default: {
+										fill: 
+											typeof countriesFill === "string"
+												? countriesFill
+												: countriesFill[geo.properties.name] || countriesFill?.default || "black"
+										
+									},
+									hover: {
+										fill: 
+											typeof countriesFillHover === "string"
+												? countriesFillHover
+												: countriesFillHover[geo.properties.name] || countriesFillHover?.default || "black"
+										
+									},
+									pressed: {
+										fill: 
+											typeof countriesFillPressed === "string"
+												? countriesFillPressed
+												: countriesFillPressed[geo.properties.name] || countriesFillPressed?.default || "black"
+										
+									},
+								}}
+							/>
+						))
+					}
+				</Geographies>
+				{guides?.front && <Graticule {...guides} />}
+				{lines.map((line, index) => (
+					<Line
+						key={`line-${index}`}
+						from={line.from}
+						to={line.to}
+						stroke={line.stroke}
+						strokeWidth={line.strokeWidth}
+						strokeLinecap={line.strokeLinecap}
+					/>
+				))}
+				{markers.map((marker, index) => (
+					<Marker
+						key={`marker-${index}`}
+						coordinates={marker.coordinates}
+						style={{
+							default: { fill: marker.fill || "red" },
+							hover: { fill: marker.hover || "blue" },
+							pressed: { fill: marker.pressed || "orange" },
 						}}
 					>
-						<text x="-8" textAnchor="end" alignmentBaseline="middle" fill="#F53">
-							{"Paris"}
+						<circle r={8} fill="#F53" />
+					</Marker>
+				))}
+				{annotations.map((annotation, index) => (
+					<Annotation
+						key={`annotation-${index}`}
+						subject={annotation.subject}
+						dx={annotation.dx}
+						dy={annotation.dy}
+						connectorProps={annotation.connectorProps}
+					>
+						<text 
+							x={annotation.textX || "-8"} 
+							textAnchor={annotation.textAnchor || "end"} 
+							alignmentBaseline={annotation.alignmentBaseline || "middle"} 
+							fill={annotation.textFill || "#F53"}
+						>
+							{annotation.text}
 						</text>
 					</Annotation>
-				{/* </ZoomableGroup> */}
+				))}
 			</ComposableMap>
 		</Grid>
 	);
