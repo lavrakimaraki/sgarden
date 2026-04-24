@@ -14,6 +14,20 @@ import dayjs from "../utils/dayjs.js";
 
 import colors from "../_colors.scss";
 
+const FILTER_STORAGE_KEY = 'dashboard1-filters';
+
+const loadStoredFilters = () => {
+  try {
+    const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
+// Default values to detect when filters are active
+const DEFAULT_REGION = 'Thessaloniki';
+const DEFAULT_METRIC = null;
+
 // Constants
 const AVAILABLE_REGIONS = ["Thessaloniki", "Athens", "Patras"];
 const AVAILABLE_METRICS = ["Revenue", "Expenses", "Profit", "Growth Rate"];
@@ -145,10 +159,10 @@ const MetricChart = ({ title, months, data, metricKey }) => {
 };
 
 // Date range picker component
-const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange, onReset }) => (
+const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange, onReset, isFiltered }) => (
   <Box display="flex" justifyContent="space-between" mb={1} alignItems="center" flexWrap="wrap" gap={2}>
-    <Grid item xs={12} sm={4} display="flex" flexDirection="row" alignItems="center">
-      <Typography variant="subtitle1" align="center" mr={2}>
+    <Grid item xs={12} sm={3} display="flex" flexDirection="row" alignItems="center">
+      <Typography variant="subtitle1" align="center" mr={2} color="white.main">
         From:
       </Typography>
       <Box data-testid="filter-date-from">
@@ -163,8 +177,8 @@ const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange, o
         />
       </Box>
     </Grid>
-    <Grid item xs={12} sm={4} display="flex" flexDirection="row" alignItems="center">
-      <Typography variant="subtitle1" align="center" mr={2}>
+    <Grid item xs={12} sm={3} display="flex" flexDirection="row" alignItems="center">
+      <Typography variant="subtitle1" align="center" mr={2} color="white.main">
         To:
       </Typography>
       <Box data-testid="filter-date-to">
@@ -179,12 +193,28 @@ const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange, o
         />
       </Box>
     </Grid>
-    <Grid item>
+    <Grid item display="flex" alignItems="center" gap={2}>
+      {isFiltered && (
+        <Box
+          data-testid="filter-active-indicator"
+          sx={{
+            px: 1.5,
+            py: 0.5,
+            bgcolor: 'warning.main',
+            color: 'warning.contrastText',
+            borderRadius: 1,
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+          }}
+        >
+          ● FILTERS ACTIVE
+        </Box>
+      )}
       <Button
         data-testid="filter-reset-button"
         variant="outlined"
         onClick={onReset}
-        sx={{ color: 'white', borderColor: 'white' }}
+        sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white' } }}
       >
         Reset Filters
       </Button>
@@ -278,10 +308,14 @@ const KeyMetricCard = ({ selectedMetric, selectedRegion, data, onMetricChange })
 // Main Dashboard component
 const Dashboard = () => {
   // State
-  const [selectedRegion, setSelectedRegion] = useState("Thessaloniki");
-  const [selectedMetric, setSelectedMetric] = useState(null);
-  const [fromDate, setFromDate] = useState(() => dayjs().subtract(1, "year"));
-  const [toDate, setToDate] = useState(dayjs());
+  const stored = loadStoredFilters();
+  const defaultFromDate = dayjs().subtract(1, "year");
+  const defaultToDate = dayjs();
+
+  const [selectedRegion, setSelectedRegion] = useState(stored?.region || DEFAULT_REGION);
+  const [selectedMetric, setSelectedMetric] = useState(stored?.metric || DEFAULT_METRIC);
+  const [fromDate, setFromDate] = useState(() => stored?.fromDate ? dayjs(stored.fromDate) : defaultFromDate);
+  const [toDate, setToDate] = useState(() => stored?.toDate ? dayjs(stored.toDate) : defaultToDate);
   const [months, setMonths] = useState([]);
   const [data, setData] = useState({
     keyMetric: { date: randomDate(), value: generateRandomData(0, 100) },
@@ -291,6 +325,36 @@ const Dashboard = () => {
     growthRate: []
   });
   const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  // Persist filters whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+        region: selectedRegion,
+        metric: selectedMetric,
+        fromDate: fromDate?.toISOString(),
+        toDate: toDate?.toISOString(),
+      }));
+    } catch (e) { /* ignore */ }
+  }, [selectedRegion, selectedMetric, fromDate, toDate]);
+
+  // Detect if any filter differs from defaults
+  const isFiltered = (
+    selectedRegion !== DEFAULT_REGION
+    || selectedMetric !== DEFAULT_METRIC
+    || (fromDate && !fromDate.isSame(defaultFromDate, 'day'))
+    || (toDate && !toDate.isSame(defaultToDate, 'day'))
+  );
+
+  const handleResetFilters = useCallback(() => {
+    setSelectedRegion(DEFAULT_REGION);
+    setSelectedMetric(DEFAULT_METRIC);
+    setFromDate(dayjs().subtract(1, "year"));
+    setToDate(dayjs());
+    try { localStorage.removeItem(FILTER_STORAGE_KEY); } catch (e) { /* ignore */ }
+  }, []);
+
+
 
   // Generate plot data based on date range
   const generatePlotData = useCallback((fromD, toD) => {
@@ -426,12 +490,14 @@ const Dashboard = () => {
               Trends
             </Typography>
             <Box sx={{ mb: 2 }}>
-              <DateRangePicker
-                fromDate={fromDate}
-                toDate={toDate}
-                onFromDateChange={handleFromDateChange}
-                onToDateChange={handleToDateChange}
-              />
+            <DateRangePicker
+              fromDate={fromDate}
+              toDate={toDate}
+              onFromDateChange={handleFromDateChange}
+              onToDateChange={handleToDateChange}
+              onReset={handleResetFilters}
+              isFiltered={isFiltered}
+            />
             </Box>
             <Grid container spacing={1} width="100%">
               <MetricChart title="Revenue" months={months} data={data.revenue} metricKey="revenue" />
