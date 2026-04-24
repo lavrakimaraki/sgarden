@@ -8,6 +8,7 @@ import DatePicker from "../components/DatePicker.js";
 import Map from "../components/Map.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportArrayToCSV } from "../utils/csv-export.js";
+import dayjs from "../utils/dayjs.js";
 
 import colors from "../_colors.scss";
 
@@ -261,12 +262,8 @@ const Dashboard = () => {
   // State
   const [selectedRegion, setSelectedRegion] = useState("Thessaloniki");
   const [selectedMetric, setSelectedMetric] = useState(null);
-  const [fromDate, setFromDate] = useState(() => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - 1);
-    return date;
-  });
-  const [toDate, setToDate] = useState(new Date());
+  const [fromDate, setFromDate] = useState(() => dayjs().subtract(1, "year"));
+  const [toDate, setToDate] = useState(dayjs());
   const [months, setMonths] = useState([]);
   const [data, setData] = useState({
     keyMetric: { date: randomDate(), value: generateRandomData(0, 100) },
@@ -281,8 +278,8 @@ const Dashboard = () => {
   const generatePlotData = useCallback((fromD, toD) => {
     if (!fromD || !toD) return;
 
-    const from = new Date(fromD);
-    const to = new Date(toD);
+    const from = dayjs(fromD).toDate();
+    const to = dayjs(toD).toDate();
     const monthsList = [];
     
     while (from <= to) {
@@ -359,7 +356,7 @@ const Dashboard = () => {
           {isBookmarked('/dashboard1') ? (
             <StarIcon data-testid="bookmark-active-dashboard1" sx={{ color: 'warning.main' }} />
           ) : (
-            <StarBorderIcon data-testid="bookmark-toggle-dashboard1" />
+            <StarBorderIcon />
           )}
         </IconButton>
       </Grid>

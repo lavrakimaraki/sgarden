@@ -81,7 +81,7 @@ const Dashboard = () => {
                     {isBookmarked('/dashboard') ? (
                         <StarIcon data-testid="bookmark-active-dashboard" sx={{ color: 'warning.main' }} />
                     ) : (
-                        <StarBorderIcon data-testid="bookmark-toggle-dashboard" />
+                        <StarBorderIcon />
                     )}
                 </IconButton>
             </Grid>
