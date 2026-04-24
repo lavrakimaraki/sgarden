@@ -16,6 +16,7 @@ import { jwt, capitalize } from "../utils/index.js";
 import { useThemeMode } from "../index.js";
 import logo from "../assets/images/logo.png";
 import { ReactComponent as LogoutIcon } from "../assets/images/logout.svg";
+import NotificationCenter from "./NotificationCenter.js";
 
 const useStyles = makeStyles((theme) => ({
 	grow: {
@@ -177,6 +178,7 @@ const Header = ({ isAuthenticated }) => {
 							<MoonIcon data-testid="theme-indicator-dark" sx={{ color: "info.main" }} />
 						)}
 					</IconButton>
+					{isAuthenticated && <NotificationCenter />}
 					{isAuthenticated
 					&& (
 						<>
