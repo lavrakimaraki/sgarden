@@ -120,19 +120,19 @@ const NotesPanel = ({ dashboardId }) => {
 		<>
 			{/* Floating toggle button */}
 			<Tooltip title="Toggle Notes">
-				<Fab
-					data-testid="notes-toggle-button"
-					color="primary"
-					onClick={handleToggle}
-					sx={{
-						position: 'fixed',
-						bottom: 24,
-						right: 24,
-						zIndex: 1200,
-					}}
-				>
-					<NotesIcon />
-				</Fab>
+            <Fab
+                data-testid="notes-toggle-button"
+                color="primary"
+                onClick={handleToggle}
+                sx={{
+                    position: 'fixed',
+                    top: 200,
+                    right: 24,
+                    zIndex: 1300,
+                }}
+            >
+                <NotesIcon />
+            </Fab>
 			</Tooltip>
 
 			{/* Notes Drawer */}

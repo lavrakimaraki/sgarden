@@ -17,6 +17,7 @@ import { useThemeMode } from "../index.js";
 import logo from "../assets/images/logo.png";
 import { ReactComponent as LogoutIcon } from "../assets/images/logout.svg";
 import NotificationCenter from "./NotificationCenter.js";
+import GlobalSearch from "./GlobalSearch.js";
 
 const useStyles = makeStyles((theme) => ({
 	grow: {
@@ -152,12 +153,6 @@ const Header = ({ isAuthenticated }) => {
 	);
 
 	const pathnames = location.pathname.split("/").filter(Boolean);
-	const crumps = [];
-
-	for (const [ind, path] of pathnames.entries()) {
-		let text = capitalize(path);
-		crumps.push(<CrumpLink to={`/${pathnames.slice(0, ind + 1).join("/")}`}>{text}</CrumpLink>);
-	}
 
 	return (
 		<>
@@ -167,6 +162,7 @@ const Header = ({ isAuthenticated }) => {
 						<Image src={logo} alt="Logo" sx={{ p: 0, my: 0, height: "100%", maxWidth: "200px" }} />
 					</Box>
 					<Box className={classes.grow} style={{ height: "100%" }} />
+					{isAuthenticated && <GlobalSearch />}
 					<IconButton
 						onClick={onThemeToggle}
 						data-testid="dark-mode-toggle"
@@ -203,8 +199,36 @@ const Header = ({ isAuthenticated }) => {
 			</AppBar>
 			{isAuthenticated
 			&& (
-				<Paper elevation={0} className={classes.root}>
-					<Breadcrumbs className="header-container">{crumps.map((e, ind) => <div key={`crump_${ind}`}>{e}</div>)}</Breadcrumbs>
+				<Paper elevation={0} className={classes.root} data-testid="breadcrumb-bar">
+					<Breadcrumbs
+						className="header-container"
+						separator={<span data-testid="breadcrumb-separator">›</span>}
+					>
+						<CrumpLink to="/" data-testid="breadcrumb-home">
+							Home
+						</CrumpLink>
+						{pathnames.map((path, ind) => {
+							const isLast = ind === pathnames.length - 1;
+							const text = capitalize(path);
+							const to = `/${pathnames.slice(0, ind + 1).join("/")}`;
+							if (isLast) {
+								return (
+									<Typography
+										key={`crump_${ind}`}
+										data-testid="breadcrumb-current"
+										sx={{ color: 'text.primary' }}
+									>
+										{text}
+									</Typography>
+								);
+							}
+							return (
+								<CrumpLink key={`crump_${ind}`} to={to}>
+									{text}
+								</CrumpLink>
+							);
+						})}
+					</Breadcrumbs>
 				</Paper>
 			)}
 			{isAuthenticated

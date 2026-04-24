@@ -31,6 +31,7 @@ const ButtonWithText = ({ text, icon, more, handler }) => {
 		Import: "sidebar-import-link",
 		"Sales Data": "sidebar-sales-data-link",
 		Alerts: "sidebar-alerts-link",
+		Audit: "sidebar-audit-link",
 	};
 		return mapping[buttonText] || null;
 	};
@@ -125,6 +126,10 @@ const buttons = [
         text: "Users",
         handler: () => navigate("/users"),
     }] : []),
+    ...(isAdmin ? [{
+        text: "Audit",
+        handler: () => navigate("/admin/audit"),
+    }] : []),
     {
         text: "Import",
         handler: () => navigate("/import"),
@@ -133,10 +138,10 @@ const buttons = [
         text: "Sales Data",
         handler: () => navigate("/data/manage"),
     },
-	{
-    text: "Alerts",
-    handler: () => navigate("/alerts"),
-	},
+    {
+        text: "Alerts",
+        handler: () => navigate("/alerts"),
+    },
     {
         text: "Overview",
         handler: () => navigate("/dashboard"),

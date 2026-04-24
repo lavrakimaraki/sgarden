@@ -33,6 +33,7 @@ import Profile from "./components/Profile.js";
 import Import from "./screens/Import.js";
 import SalesData from "./screens/SalesData.js";
 import Alerts from "./screens/Alerts.js";
+import Audit from "./screens/Audit.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
 
@@ -128,6 +129,7 @@ const App = () => {
 									<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
 									<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />
 									<Route path="data/manage" element={<Protected c={<SalesData />} />} />
+									<Route path="admin/audit" element={<AdminOnly c={<Audit />} />} />
 									<Route path="alerts" element={<Protected c={<Alerts />} />} />
 									<Route path="map" element={<Protected c={<Map />} />} />
 									<Route path="*" element={<NotFound />} />
