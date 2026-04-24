@@ -37,6 +37,7 @@ import Audit from "./screens/Audit.js";
 import MapPage from "./screens/MapPage.js";
 import Reports from "./screens/Reports.js";
 import ReportView from "./screens/ReportView.js";
+import Settings from "./screens/Settings.js";
 import { I18nProvider } from "./utils/i18n.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
@@ -127,6 +128,7 @@ const App = () => {
 										<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
 										<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
 										<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
+										<Route path="settings" element={<Protected c={<Settings />} />} />
 										<Route path="activity" element={<AdminOnly c={<Activity />} />} />
 										<Route path="users" element={<AdminOnly c={<Users />} />} />
 										<Route path="import" element={<Protected c={<Import />} />} />
