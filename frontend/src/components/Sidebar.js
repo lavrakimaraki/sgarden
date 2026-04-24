@@ -163,23 +163,29 @@ const buttons = [
 
 	return (
 		<div className={classes.sidebar} style={{ width: (isSmall) ? "50px" : "200px", padding: (isSmall) ? "20px 5px" : "20px 5px", textAlign: "center" }}>
-			{!isSmall && bookmarkedDashboards.length > 0 && (
+			{!isSmall && (
 				<div data-testid="sidebar-favorites-section" style={{ marginBottom: "20px" }}>
 					<Typography variant="caption" color="white.main" sx={{ display: "block", mb: 1, opacity: 0.7, textTransform: "uppercase", fontSize: "0.7rem", fontWeight: "bold" }}>
 						Favorites
 					</Typography>
-					{bookmarkedDashboards.map((dashboard) => (
-						<Button
-							key={dashboard.path}
-							data-testid={`sidebar-favorite-${dashboard.path.replace('/', '')}`}
-							sx={{ width: "100%", display: "flex", flexDirection: "row", justifyContent: "flex-start", padding: "8px 40px 8px 16px", fontSize: "0.9rem" }}
-							onClick={() => navigate(dashboard.path)}
-						>
-							<Typography color="white.main" fontSize="medium" display="flex" alignItems="center" sx={{ textTransform: "capitalize" }}>
-								⭐ {dashboard.title}
-							</Typography>
-						</Button>
-					))}
+					{bookmarkedDashboards.length === 0 ? (
+						<Typography variant="caption" color="white.main" sx={{ display: "block", opacity: 0.5, fontStyle: "italic", px: 2, mb: 1 }}>
+							No favorites yet
+						</Typography>
+					) : (
+						bookmarkedDashboards.map((dashboard) => (
+							<Button
+								key={dashboard.path}
+								data-testid={`sidebar-favorite-${dashboard.path.replace('/', '')}`}
+								sx={{ width: "100%", display: "flex", flexDirection: "row", justifyContent: "flex-start", padding: "8px 40px 8px 16px", fontSize: "0.9rem" }}
+								onClick={() => navigate(dashboard.path)}
+							>
+								<Typography color="white.main" fontSize="medium" display="flex" alignItems="center" sx={{ textTransform: "capitalize" }}>
+									⭐ {dashboard.title}
+								</Typography>
+							</Button>
+						))
+					)}
 					<Divider sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
 				</div>
 			)}
