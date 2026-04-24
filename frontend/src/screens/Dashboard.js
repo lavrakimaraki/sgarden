@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Grid, Typography, Box, IconButton } from "@mui/material";
 import { Star as StarIcon, StarBorder as StarBorderIcon, Download as DownloadIcon } from "@mui/icons-material";
-
+import NotesPanel from "../components/NotesPanel.js";
 import Dropdown from "../components/Dropdown.js";
 import Card from "../components/Card.js";
 import Plot from "../components/Plot.js";
@@ -277,6 +277,7 @@ const Dashboard = () => {
                     </Card>
                 </Grid>
             </Grid>
+            <NotesPanel dashboardId="dashboard" />
         </Grid>
     );
 };

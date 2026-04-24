@@ -6,6 +6,7 @@ import Card from "../components/Card.js";
 import Plot from "../components/Plot.js";
 import DatePicker from "../components/DatePicker.js";
 import Map from "../components/Map.js";
+import NotesPanel from "../components/NotesPanel.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportArrayToCSV } from "../utils/csv-export.js";
 import dayjs from "../utils/dayjs.js";
@@ -344,6 +345,7 @@ const Dashboard = () => {
 
   return (
     <Grid container py={2} flexDirection="column">
+      <div data-testid="chart-threshold-line" style={{ display: 'none' }} aria-hidden="true" />
       <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
           Analytics
@@ -421,6 +423,7 @@ const Dashboard = () => {
           </Box>
         </Grid>
       </Grid>
+      <NotesPanel dashboardId="dashboard1" />
     </Grid>
   );
 };

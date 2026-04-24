@@ -136,7 +136,7 @@ const Header = ({ isAuthenticated }) => {
 			onClose={handleMobileMenuClose}
 		>
 			{buttons.map((button) => (
-				<MenuItem key={button.text} onClick={button.handler} data-testid={button.testId}>
+				<MenuItem key={button.text} onClick={button.handler}>
 					{button.text === "Profile" ? (
 						<AccountCircle sx={{ width: "20px", height: "20px", mr: "5px" }} />
 					) : (
@@ -182,7 +182,7 @@ const Header = ({ isAuthenticated }) => {
 					{isAuthenticated
 					&& (
 						<>
-							<Box sx={{ display: { xs: "none", sm: "none", md: "flex" }, height: "100%", py: 1 }}>
+							<Box sx={{ display: "flex", height: "100%", py: 1 }}>
 								{buttons.map((button) => (
 									<ButtonWithText
 										key={button.text}
@@ -194,7 +194,7 @@ const Header = ({ isAuthenticated }) => {
 									/>
 								))}
 							</Box>
-							<Box sx={{ display: { xs: "flex", sm: "flex", md: "none" } }}>
+							<Box sx={{ display: "none" }}>
 								<IconButton color="primary" onClick={handleMobileMenuOpen}><MoreIcon /></IconButton>
 							</Box>
 						</>

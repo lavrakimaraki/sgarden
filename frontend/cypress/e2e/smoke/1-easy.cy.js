@@ -5,41 +5,41 @@
 // ---------------------------------------------------------------------------
 // M1: User Profile Page (50 pts)
 // ---------------------------------------------------------------------------
-// describe('M1: User Profile Page (50 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard');
-//   });
+describe('M1: User Profile Page (50 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard');
+  });
 
-//   it('profile-nav-link navigates to profile-page', () => {
-//     cy.get('[data-testid="profile-nav-link"]').click();
-//     cy.get('[data-testid="profile-page"]').should('be.visible');
-//   });
+  it('profile-nav-link navigates to profile-page', () => {
+    cy.get('[data-testid="profile-nav-link"]').click();
+    cy.get('[data-testid="profile-page"]').should('be.visible');
+  });
 
-//   it('profile fields are visible and non-empty', () => {
-//     cy.get('[data-testid="profile-nav-link"]').click();
-//     cy.get('[data-testid="profile-page"]').should('be.visible');
-//     cy.get('[data-testid="profile-username"]').should('be.visible').invoke('text').should('not.be.empty');
-//     cy.get('[data-testid="profile-email"]').should('be.visible').invoke('text').should('not.be.empty');
-//     cy.get('[data-testid="profile-role"]').should('be.visible').invoke('text').should('not.be.empty');
-//     cy.get('[data-testid="profile-created-at"]').should('be.visible').invoke('text').should('not.be.empty');
-//     cy.get('[data-testid="profile-last-active"]').should('be.visible').invoke('text').should('not.be.empty');
-//   });
+  it('profile fields are visible and non-empty', () => {
+    cy.get('[data-testid="profile-nav-link"]').click();
+    cy.get('[data-testid="profile-page"]').should('be.visible');
+    cy.get('[data-testid="profile-username"]').should('be.visible').invoke('text').should('not.be.empty');
+    cy.get('[data-testid="profile-email"]').should('be.visible').invoke('text').should('not.be.empty');
+    cy.get('[data-testid="profile-role"]').should('be.visible').invoke('text').should('not.be.empty');
+    cy.get('[data-testid="profile-created-at"]').should('be.visible').invoke('text').should('not.be.empty');
+    cy.get('[data-testid="profile-last-active"]').should('be.visible').invoke('text').should('not.be.empty');
+  });
 
-//   it('profile-edit-button reveals profile-save-button', () => {
-//     cy.get('[data-testid="profile-nav-link"]').click();
-//     cy.get('[data-testid="profile-edit-button"]').click();
-//     cy.get('[data-testid="profile-save-button"]').should('be.visible');
-//   });
+  it('profile-edit-button reveals profile-save-button', () => {
+    cy.get('[data-testid="profile-nav-link"]').click();
+    cy.get('[data-testid="profile-edit-button"]').click();
+    cy.get('[data-testid="profile-save-button"]').should('be.visible');
+  });
 
-//   it('password-change fields are present', () => {
-//     cy.get('[data-testid="profile-nav-link"]').click();
-//     cy.get('[data-testid="profile-password-current"]').should('exist');
-//     cy.get('[data-testid="profile-password-new"]').should('exist');
-//     cy.get('[data-testid="profile-password-confirm"]').should('exist');
-//     cy.get('[data-testid="profile-password-save"]').should('exist');
-//   });
-// });
+  it('password-change fields are present', () => {
+    cy.get('[data-testid="profile-nav-link"]').click();
+    cy.get('[data-testid="profile-password-current"]').should('exist');
+    cy.get('[data-testid="profile-password-new"]').should('exist');
+    cy.get('[data-testid="profile-password-confirm"]').should('exist');
+    cy.get('[data-testid="profile-password-save"]').should('exist');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // M2: Dark Mode Toggle (50 pts)
@@ -186,40 +186,40 @@ describe('M6: Notification Center (50 pts)', () => {
 // ---------------------------------------------------------------------------
 // M7: Dashboard Filter Persistence (50 pts)
 // ---------------------------------------------------------------------------
-// describe('M7: Dashboard Filter Persistence (50 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard1');
-//   });
+describe('M7: Dashboard Filter Persistence (50 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard1');
+  });
 
-//   it('filter-metric, filter-date-from and filter-date-to exist on /dashboard1', () => {
-//     cy.get('[data-testid="filter-metric"]').should('exist');
-//     cy.get('[data-testid="filter-date-from"]').should('exist');
-//     cy.get('[data-testid="filter-date-to"]').should('exist');
-//   });
+  it('filter-metric, filter-date-from and filter-date-to exist on /dashboard1', () => {
+    cy.get('[data-testid="filter-metric"]').should('exist');
+    cy.get('[data-testid="filter-date-from"]').should('exist');
+    cy.get('[data-testid="filter-date-to"]').should('exist');
+  });
 
-//   it('filter-reset-button exists on /dashboard1', () => {
-//     cy.get('[data-testid="filter-reset-button"]').should('exist');
-//   });
-// });
+  it('filter-reset-button exists on /dashboard1', () => {
+    cy.get('[data-testid="filter-reset-button"]').should('exist');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // M8: Breadcrumb Navigation (60 pts)
 // ---------------------------------------------------------------------------
-// describe('M8: Breadcrumb Navigation (60 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard1');
-//   });
+describe('M8: Breadcrumb Navigation (60 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard1');
+  });
 
-//   it('breadcrumb-bar is visible on an authenticated page', () => {
-//     cy.get('[data-testid="breadcrumb-bar"]').should('be.visible');
-//   });
+  it('breadcrumb-bar is visible on an authenticated page', () => {
+    cy.get('[data-testid="breadcrumb-bar"]').should('be.visible');
+  });
 
-//   it('breadcrumb-home and breadcrumb-current exist inside breadcrumb-bar', () => {
-//     cy.get('[data-testid="breadcrumb-bar"]').within(() => {
-//       cy.get('[data-testid="breadcrumb-home"]').should('exist');
-//       cy.get('[data-testid="breadcrumb-current"]').should('exist');
-//     });
-//   });
-// });
+  it('breadcrumb-home and breadcrumb-current exist inside breadcrumb-bar', () => {
+    cy.get('[data-testid="breadcrumb-bar"]').within(() => {
+      cy.get('[data-testid="breadcrumb-home"]').should('exist');
+      cy.get('[data-testid="breadcrumb-current"]').should('exist');
+    });
+  });
+});

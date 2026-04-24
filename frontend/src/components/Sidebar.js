@@ -22,13 +22,16 @@ const useStyles = makeStyles((theme) => ({
 
 const ButtonWithText = ({ text, icon, more, handler }) => {
 	const getTestId = (buttonText) => {
-		const mapping = {
-			Activity: "sidebar-activity-link",
-			Users: "sidebar-users-link",
-			Overview: "sidebar-overview-link",
-			Analytics: "sidebar-analytics-link",
-			Insights: "sidebar-insights-link",
-		};
+	const mapping = {
+		Activity: "sidebar-activity-link",
+		Users: "sidebar-users-link",
+		Overview: "sidebar-overview-link",
+		Analytics: "sidebar-analytics-link",
+		Insights: "sidebar-insights-link",
+		Import: "sidebar-import-link",
+		"Sales Data": "sidebar-sales-data-link",
+		Alerts: "sidebar-alerts-link",
+	};
 		return mapping[buttonText] || null;
 	};
 
@@ -113,38 +116,40 @@ const Sidebar = ({ isSmall: sidebarIsSmall }) => {
 		};
 	}, [getBookmarkedDashboards]);
 
-	const buttons = [
-		...(isAdmin ? [{
-			text: "Activity",
-			handler: () => {
-				navigate("/activity");
-			},
-		}] : []),
-		...(isAdmin ? [{
-			text: "Users",
-			handler: () => {
-				navigate("/users");
-			},
-		}] : []),
-		{
-			text: "Overview",
-			handler: () => {
-				navigate("/dashboard");
-			},
-		},
-		{
-			text: "Analytics",
-			handler: () => {
-				navigate("/dashboard1");
-			},
-		},
-		{
-			text: "Insights",
-			handler: () => {
-				navigate("/dashboard2");
-			},
-		},
-	];
+const buttons = [
+    ...(isAdmin ? [{
+        text: "Activity",
+        handler: () => navigate("/activity"),
+    }] : []),
+    ...(isAdmin ? [{
+        text: "Users",
+        handler: () => navigate("/users"),
+    }] : []),
+    {
+        text: "Import",
+        handler: () => navigate("/import"),
+    },
+    {
+        text: "Sales Data",
+        handler: () => navigate("/data/manage"),
+    },
+	{
+    text: "Alerts",
+    handler: () => navigate("/alerts"),
+	},
+    {
+        text: "Overview",
+        handler: () => navigate("/dashboard"),
+    },
+    {
+        text: "Analytics",
+        handler: () => navigate("/dashboard1"),
+    },
+    {
+        text: "Insights",
+        handler: () => navigate("/dashboard2"),
+    },
+];
 
 	return (
 		<div className={classes.sidebar} style={{ width: (isSmall) ? "50px" : "200px", padding: (isSmall) ? "20px 5px" : "20px 5px", textAlign: "center" }}>
