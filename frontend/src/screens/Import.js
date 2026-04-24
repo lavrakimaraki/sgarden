@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
 	Box,
 	Typography,
@@ -11,9 +11,19 @@ import {
 	TableHead,
 	TableRow,
 	Alert,
-	Grid,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Divider,
+	List,
+	ListItem,
+	ListItemText,
 } from '@mui/material';
-import { CloudUpload as UploadIcon, Description as FileIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, Description as FileIcon, History as HistoryIcon } from '@mui/icons-material';
+
+const TARGET_FIELDS = ['category', 'month', 'year', 'value', 'unit', 'notes', 'ignore'];
+const HISTORY_KEY = 'import-history';
 
 const parseCSV = (text) => {
 	const lines = text.trim().split(/\r?\n/);
@@ -56,7 +66,23 @@ const Import = () => {
 	const [errorMessage, setErrorMessage] = useState('');
 	const [summary, setSummary] = useState(null);
 	const [isDragging, setIsDragging] = useState(false);
+	const [columnMapping, setColumnMapping] = useState({});
+	const [history, setHistory] = useState([]);
 	const fileInputRef = useRef(null);
+
+	// Load history on mount
+	useEffect(() => {
+		try {
+			const stored = localStorage.getItem(HISTORY_KEY);
+			if (stored) setHistory(JSON.parse(stored));
+		} catch (e) { /* ignore */ }
+	}, []);
+
+	const persistHistory = useCallback((items) => {
+		try {
+			localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+		} catch (e) { /* ignore */ }
+	}, []);
 
 	const handleFile = useCallback((file) => {
 		if (!file) return;
@@ -82,8 +108,17 @@ const Import = () => {
 					setHeaders([]);
 					setRows([]);
 					setErrorRows({});
+					setColumnMapping({});
 					return;
 				}
+
+				// Auto-map columns
+				const initialMapping = {};
+				hdrs.forEach((h) => {
+					const lower = h.toLowerCase();
+					const match = TARGET_FIELDS.find((tf) => tf.toLowerCase() === lower);
+					initialMapping[h] = match || 'ignore';
+				});
 
 				const errs = {};
 				let errorCount = 0;
@@ -98,6 +133,7 @@ const Import = () => {
 				setHeaders(hdrs);
 				setRows(rws);
 				setErrorRows(errs);
+				setColumnMapping(initialMapping);
 
 				if (errorCount > 0) {
 					setErrorMessage(`Found ${errorCount} row(s) with validation errors. Please review.`);
@@ -107,6 +143,7 @@ const Import = () => {
 				setHeaders([]);
 				setRows([]);
 				setErrorRows({});
+				setColumnMapping({});
 			}
 		};
 		reader.readAsText(file);
@@ -138,15 +175,31 @@ const Import = () => {
 		fileInputRef.current?.click();
 	}, []);
 
+	const handleColumnMappingChange = useCallback((header, value) => {
+		setColumnMapping((prev) => ({ ...prev, [header]: value }));
+	}, []);
+
 	const handleSubmit = useCallback(() => {
 		const errorCount = Object.keys(errorRows).length;
 		const successCount = rows.length - errorCount;
-		setSummary({
+		const newSummary = {
 			total: rows.length,
 			inserted: successCount,
 			skipped: errorCount,
-		});
-	}, [rows, errorRows]);
+			fileName,
+			timestamp: new Date().toISOString(),
+		};
+		setSummary(newSummary);
+
+		// Add to history
+		const newHistoryEntry = {
+			id: Date.now().toString(),
+			...newSummary,
+		};
+		const updatedHistory = [newHistoryEntry, ...history].slice(0, 20);
+		setHistory(updatedHistory);
+		persistHistory(updatedHistory);
+	}, [rows, errorRows, fileName, history, persistHistory]);
 
 	const handleCancel = useCallback(() => {
 		setFileName('');
@@ -155,6 +208,7 @@ const Import = () => {
 		setErrorRows({});
 		setErrorMessage('');
 		setSummary(null);
+		setColumnMapping({});
 		if (fileInputRef.current) fileInputRef.current.value = '';
 	}, []);
 
@@ -230,6 +284,51 @@ const Import = () => {
 					</Alert>
 				)}
 
+				{/* Column Mapper */}
+				{headers.length > 0 && (
+					<Box data-testid="import-column-mapper" sx={{ mt: 3 }}>
+						<Typography variant="h6" gutterBottom>
+							Column Mapping
+						</Typography>
+						<Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+							Map your CSV columns to the target fields
+						</Typography>
+						<TableContainer component={Paper} variant="outlined">
+							<Table size="small">
+								<TableHead>
+									<TableRow sx={{ bgcolor: 'grey.100' }}>
+										<TableCell><strong>CSV Column</strong></TableCell>
+										<TableCell><strong>Target Field</strong></TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									{headers.map((header) => (
+										<TableRow
+											key={header}
+											data-testid={`import-column-mapper-row-${header}`}
+										>
+											<TableCell>{header}</TableCell>
+											<TableCell>
+												<FormControl size="small" sx={{ minWidth: 160 }}>
+													<Select
+														data-testid={`import-column-mapper-${header}`}
+														value={columnMapping[header] || 'ignore'}
+														onChange={(e) => handleColumnMappingChange(header, e.target.value)}
+													>
+														{TARGET_FIELDS.map((tf) => (
+															<MenuItem key={tf} value={tf}>{tf}</MenuItem>
+														))}
+													</Select>
+												</FormControl>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</TableContainer>
+					</Box>
+				)}
+
 				{/* Preview Table */}
 				{rows.length > 0 && (
 					<Box sx={{ mt: 3 }}>
@@ -285,21 +384,25 @@ const Import = () => {
 
 				{/* Action Buttons */}
 				<Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                        <Button
-                        data-testid="import-submit"
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSubmit}
-                        disabled={rows.length === 0}
-                    >
-                        Confirm Import
-                    </Button>
-                    <button
-                        data-testid="import-commit-button"
-                        onClick={handleSubmit}
-                        style={{ display: 'none' }}
-                        aria-hidden="true"
-                    />
+					<Button
+						data-testid="import-submit"
+						variant="contained"
+						color="primary"
+						onClick={handleSubmit}
+						disabled={rows.length === 0}
+					>
+						Confirm Import
+					</Button>
+					<Button
+						data-testid="import-commit-button"
+						variant="contained"
+						color="primary"
+						onClick={handleSubmit}
+						disabled={rows.length === 0}
+						sx={{ display: 'none' }}
+					>
+						Commit
+					</Button>
 					<Button
 						data-testid="import-cancel"
 						variant="outlined"
@@ -311,22 +414,92 @@ const Import = () => {
 
 				{/* Summary */}
 				{summary && (
-					<Alert
-						data-testid="import-summary"
-						severity={summary.skipped > 0 ? 'warning' : 'success'}
-						sx={{ mt: 3 }}
-					>
-						<Typography variant="body1">
-							<strong>Import Summary:</strong>
-						</Typography>
-						<Typography variant="body2">
-							Total rows: {summary.total} | Inserted: {summary.inserted} | Skipped: {summary.skipped}
-						</Typography>
-					</Alert>
+					<Box sx={{ mt: 3 }}>
+						<Alert
+							data-testid="import-summary"
+							severity={summary.skipped > 0 ? 'warning' : 'success'}
+						>
+							<Typography variant="body1">
+								<strong>Import Summary:</strong>
+							</Typography>
+							<Typography variant="body2">
+								Total rows: {summary.total} | Inserted: {summary.inserted} | Skipped: {summary.skipped}
+							</Typography>
+						</Alert>
+
+						{/* Detailed counts as separate testids */}
+						<Box sx={{ display: 'flex', gap: 3, mt: 2 }}>
+							<Box>
+								<Typography variant="caption" color="textSecondary">Success</Typography>
+								<Typography
+									data-testid="import-summary-success-count"
+									variant="h6"
+									color="success.main"
+								>
+									{summary.inserted}
+								</Typography>
+							</Box>
+							<Box>
+								<Typography variant="caption" color="textSecondary">Errors</Typography>
+								<Typography
+									data-testid="import-summary-error-count"
+									variant="h6"
+									color="error.main"
+								>
+									{summary.skipped}
+								</Typography>
+							</Box>
+							<Box>
+								<Typography variant="caption" color="textSecondary">Total</Typography>
+								<Typography
+									data-testid="import-summary-total-count"
+									variant="h6"
+								>
+									{summary.total}
+								</Typography>
+							</Box>
+						</Box>
+					</Box>
 				)}
+
+				<Divider sx={{ my: 4 }} />
+
+				{/* Import History */}
+				<Box>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+						<HistoryIcon />
+						<Typography variant="h6">Import History</Typography>
+					</Box>
+
+					<Paper variant="outlined" sx={{ p: 1 }}>
+						<List data-testid="import-history" dense>
+							{history.length === 0 ? (
+								<ListItem>
+									<ListItemText
+										primary="No previous imports"
+										secondary="Your import history will appear here"
+									/>
+								</ListItem>
+							) : (
+								history.map((entry, index) => (
+									<ListItem
+										key={entry.id}
+										data-testid={`import-history-item-${index}`}
+									>
+										<ListItemText
+											primary={`${entry.fileName} — ${entry.inserted} inserted, ${entry.skipped} skipped`}
+											secondary={new Date(entry.timestamp).toLocaleString()}
+										/>
+									</ListItem>
+								))
+							)}
+						</List>
+					</Paper>
+				</Box>
 			</Paper>
 		</Box>
 	);
 };
 
 export default Import;
+
