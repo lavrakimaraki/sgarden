@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { Grid, Typography } from "@mui/material";
+import { Grid, Typography, IconButton } from "@mui/material";
+import { Star as StarIcon, StarBorder as StarBorderIcon, Download as DownloadIcon } from "@mui/icons-material";
 import Dropdown from "../components/Dropdown.js";
 import Card from "../components/Card.js";
 import Plot from "../components/Plot.js";
+import { useBookmarks } from "../hooks/useBookmarks.js";
+import { exportToCSV, exportArrayToCSV } from "../utils/csv-export.js";
 
 import { getData } from "../api/index.js";
 
@@ -11,6 +14,7 @@ const availableRegions = ["Thessaloniki", "Athens", "Patras"];
 const Dashboard = () => {
     const [selectedRegion, setSelectedRegion] = useState("Thessaloniki");
     const [data, setData] = useState({ quarterlySalesDistribution: {}, budgetVsActual: {}, timePlot: {} });
+    const { isBookmarked, toggleBookmark } = useBookmarks();
 
     useEffect(() => {
         getData().then((tempData) => {
@@ -24,9 +28,22 @@ const Dashboard = () => {
 
     return (
         <Grid container py={2} flexDirection="column">
-            <Typography variant="h4" gutterBottom color="white.main">
-                Insights
-            </Typography>
+            <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
+                    Insights
+                </Typography>
+                <IconButton
+                    data-testid="bookmark-toggle-dashboard2"
+                    onClick={() => toggleBookmark('/dashboard2')}
+                    sx={{ color: 'white' }}
+                >
+                    {isBookmarked('/dashboard2') ? (
+                        <StarIcon data-testid="bookmark-active-dashboard2" sx={{ color: 'warning.main' }} />
+                    ) : (
+                        <StarBorderIcon data-testid="bookmark-toggle-dashboard2" />
+                    )}
+                </IconButton>
+            </Grid>
 
             <Grid item style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "20px" }}>
                 <Typography variant="body1" style={{ marginRight: "10px" }} color="white.main">Region:</Typography>
@@ -39,7 +56,26 @@ const Dashboard = () => {
 
             <Grid container spacing={2}>
                 <Grid item sm={12} md={6}>
-                    <Card title="Quarterly Sales Distribution">
+                    <Card 
+                        title="Quarterly Sales Distribution"
+                        titleAction={
+                            <IconButton
+                                data-testid="export-csv-quarterly-sales"
+                                onClick={() => {
+                                    const quarterlySalesData = [
+                                        { quarter: 'Q1', values: JSON.stringify(data?.quarterlySalesDistribution?.Q1) },
+                                        { quarter: 'Q2', values: JSON.stringify(data?.quarterlySalesDistribution?.Q2) },
+                                        { quarter: 'Q3', values: JSON.stringify(data?.quarterlySalesDistribution?.Q3) },
+                                    ];
+                                    exportToCSV(quarterlySalesData, 'quarterly-sales-distribution');
+                                }}
+                                sx={{ color: 'white', padding: '4px' }}
+                                size="small"
+                            >
+                                <DownloadIcon sx={{ fontSize: '20px' }} />
+                            </IconButton>
+                        }
+                    >
                         <Plot
                             data={[
                                 {
@@ -69,7 +105,27 @@ const Dashboard = () => {
                     </Card>
                 </Grid>
                 <Grid item sm={12} md={6}>
-                    <Card title="Budget vs Actual Spending">
+                    <Card 
+                        title="Budget vs Actual Spending"
+                        titleAction={
+                            <IconButton
+                                data-testid="export-csv-budget-vs-actual"
+                                onClick={() => {
+                                    const budgetData = Object.entries(data?.budgetVsActual || {}).map(([month, values]) => ({
+                                        month,
+                                        budget: values.budget,
+                                        actual: values.actual,
+                                        forecast: values.forecast,
+                                    }));
+                                    exportToCSV(budgetData, 'budget-vs-actual-spending');
+                                }}
+                                sx={{ color: 'white', padding: '4px' }}
+                                size="small"
+                            >
+                                <DownloadIcon sx={{ fontSize: '20px' }} />
+                            </IconButton>
+                        }
+                    >
                         <Plot
                             data={[
                                 {
@@ -102,7 +158,27 @@ const Dashboard = () => {
                     </Card>
                 </Grid>
                 <Grid item sm={12}>
-                    <Card title="Performance Over Time">
+                    <Card 
+                        title="Performance Over Time"
+                        titleAction={
+                            <IconButton
+                                data-testid="export-csv-performance"
+                                onClick={() => {
+                                    const performanceData = Array.from({ length: 20 }, (_, i) => ({
+                                        period: i + 1,
+                                        projected: data?.timePlot?.projected?.[i] || 0,
+                                        actual: data?.timePlot?.actual?.[i] || 0,
+                                        historicalAvg: data?.timePlot?.historicalAvg?.[i] || 0,
+                                    }));
+                                    exportToCSV(performanceData, 'performance-over-time');
+                                }}
+                                sx={{ color: 'white', padding: '4px' }}
+                                size="small"
+                            >
+                                <DownloadIcon sx={{ fontSize: '20px' }} />
+                            </IconButton>
+                        }
+                    >
                         <Plot
                             data={[
                                 {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
 import { Route, Routes, BrowserRouter as Router, useLocation } from "react-router-dom";
 import { StyledEngineProvider, ThemeProvider, createTheme } from "@mui/material/styles";
@@ -28,11 +28,26 @@ import Users from "./screens/Users.js";
 import Dashboard from "./screens/Dashboard.js";
 import Dashboard1 from "./screens/Dashboard1.js";
 import Dashboard2 from "./screens/Dashboard2.js";
+import Activity from "./screens/Activity.js";
+import Profile from "./components/Profile.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
 
-const theme = createTheme({
+// Theme Context
+const ThemeContext = createContext();
+
+export const useThemeMode = () => {
+	const context = useContext(ThemeContext);
+	if (!context) {
+		throw new Error("useThemeMode must be used within ThemeContextProvider");
+	}
+	return context;
+};
+
+const createAppTheme = (mode = "light") => createTheme({
+	mode,
 	palette: {
+		mode,
 		primary: { main: colors.primary },
 		secondary: { main: colors.secondary || colorSuggestions.secondary },
 		third: { main: colors.third || colorSuggestions.third },
@@ -55,44 +70,68 @@ const theme = createTheme({
 		greyDark: { main: colors.greyDark },
 		green: { main: colors.green },
 		white: { main: "#ffffff" },
+		background: {
+			default: mode === "dark" ? "#121212" : "#ffffff",
+			paper: mode === "dark" ? "#1e1e1e" : "#ffffff",
+		},
+		text: {
+			primary: mode === "dark" ? "#ffffff" : "#000000",
+			secondary: mode === "dark" ? "#b0b0b0" : "#666666",
+		},
 	},
 });
 
 const App = () => {
 	const location = useLocation();
 	const [authenticated, setAuthenticated] = useState(false);
+	const [themeMode, setThemeMode] = useState(() => {
+		const savedMode = localStorage.getItem("themeMode");
+		return savedMode || "light";
+	});
 
 	useEffect(() => {
 		setAuthenticated(jwt.isAuthenticated());
 	}, [location]);
 
+	const handleThemeToggle = () => {
+		const newMode = themeMode === "light" ? "dark" : "light";
+		setThemeMode(newMode);
+		localStorage.setItem("themeMode", newMode);
+	};
+
+	const theme = createAppTheme(themeMode);
+
 	return (
 		<StyledEngineProvider injectFirst>
 			<CssBaseline />
 			<ThemeProvider theme={theme}>
-				<ErrorBoundary FallbackComponent={ErrorFallback}>
-					<LocalizationProvider dateAdapter={AdapterDayjs}>
-						<Header isAuthenticated={authenticated} />
-						<main style={{ position: "relative", zIndex: 0, height: `calc(100vh - ${authenticated ? "160" : "70"}px)` }}>
-							<Routes>
-								<Route index element={<GuestOnly c={<SignIn />} />} />
-								<Route path="auth" element={<GuestOnly c={<Auth />} />} />
-								<Route path="forgot-password" element={<GuestOnly c={<ForgotPassword />} />} />
-								<Route path="reset-password" element={<GuestOnly c={<ResetPassword />} />} />
-								<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
-								<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
-								<Route path="users" element={<AdminOnly c={<Users />} />} />
-								<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
-								<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
-								<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />
-								<Route path="map" element={<Protected c={<Map />} />} />
-								<Route path="*" element={<NotFound />} />
-							</Routes>
-						</main>
-						{authenticated && <Footer /> }
-						<Snackbar />
-					</LocalizationProvider>
-				</ErrorBoundary>
+				<ThemeContext.Provider value={{ themeMode, onThemeToggle: handleThemeToggle }}>
+					<ErrorBoundary FallbackComponent={ErrorFallback}>
+						<LocalizationProvider dateAdapter={AdapterDayjs}>
+							<Header isAuthenticated={authenticated} />
+							<main style={{ position: "relative", zIndex: 0, height: `calc(100vh - ${authenticated ? "160" : "70"}px)` }}>
+								<Routes>
+									<Route index element={<GuestOnly c={<SignIn />} />} />
+									<Route path="auth" element={<GuestOnly c={<Auth />} />} />
+									<Route path="forgot-password" element={<GuestOnly c={<ForgotPassword />} />} />
+									<Route path="reset-password" element={<GuestOnly c={<ResetPassword />} />} />
+									<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
+									<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
+									<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
+									<Route path="activity" element={<AdminOnly c={<Activity />} />} />
+									<Route path="users" element={<AdminOnly c={<Users />} />} />
+									<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
+									<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
+									<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />
+									<Route path="map" element={<Protected c={<Map />} />} />
+									<Route path="*" element={<NotFound />} />
+								</Routes>
+							</main>
+							{authenticated && <Footer /> }
+							<Snackbar />
+						</LocalizationProvider>
+					</ErrorBoundary>
+				</ThemeContext.Provider>
 			</ThemeProvider>
 		</StyledEngineProvider>
 	);

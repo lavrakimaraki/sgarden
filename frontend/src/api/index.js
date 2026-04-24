@@ -4,10 +4,11 @@ import queryString from "query-string";
 import { jwt } from "../utils/index.js";
 
 const { REACT_APP_MAIN_SERVER_URL } = process.env;
+const apiOrigin = REACT_APP_MAIN_SERVER_URL?.trim() || "http://localhost:4000";
 
 const rootApi = ky.extend({
 	timeout: false,
-	prefixUrl: `${REACT_APP_MAIN_SERVER_URL}/api`,
+	prefixUrl: `${apiOrigin}/api`,
 	retry: {
 		statusCodes: [401, 408, 413, 429, 502, 503, 504],
 		limit: 2,

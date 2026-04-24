@@ -19,6 +19,7 @@ const Card = ({
 	width = "100%",
 	height = "auto",
 	padding = "10px",
+	titleAction = null,
 }) => (
 	<Box
 		sx={{
@@ -36,13 +37,20 @@ const Card = ({
 				padding="10px 20px"
 				display="flex"
 				flexDirection="row"
-				justifyContent="center"
+				justifyContent="space-between"
 				alignItems="center"
 			>
-				{typeof title === "string" ? (
-					<Typography variant="body" component="h2" fontSize={titleFontSize}>{title}</Typography>
-				) : (
-					title
+				<Box display="flex" alignItems="center">
+					{typeof title === "string" ? (
+						<Typography variant="body" component="h2" fontSize={titleFontSize}>{title}</Typography>
+					) : (
+						title
+					)}
+				</Box>
+				{titleAction && (
+					<Box>
+						{titleAction}
+					</Box>
 				)}
 			</Grid>
 		)}

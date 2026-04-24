@@ -26,7 +26,21 @@ export const useAuthSubmit = (apiFunction, successRedirect = "/") => {
       }
     } catch (err) {
       console.error("Auth submission error:", err);
-      error("An unexpected error occurred. Please try again.");
+      let message = "An unexpected error occurred. Please try again.";
+
+      try {
+        const response = err?.response;
+        if (response?.json) {
+          const data = await response.json();
+          if (data?.message) {
+            message = data.message;
+          }
+        }
+      } catch {
+        // Keep the default message.
+      }
+
+      error(message);
     } finally {
       setIsSubmitting(false);
     }

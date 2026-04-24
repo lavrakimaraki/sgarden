@@ -1,5 +1,6 @@
 import express from "express";
-import { email, validations } from "../utils/index.js";
+import bcrypt from "bcryptjs";
+import { email, validations, activity } from "../utils/index.js";
 import { User, Invitation } from "../models/index.js";
 
 const router = express.Router({ mergeParams: true });
@@ -162,6 +163,142 @@ router.post("/role", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error updating user role:", error);
     return res.status(500).json({ message: "Failed to update role" });
+  }
+});
+
+// PUT /profile - Update current user's profile
+router.put("/profile", requireAuth, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    const userId = res.locals.user.id;
+
+    // Validation
+    if (!username?.trim() || !email?.trim()) {
+      return res.status(400).json({ 
+        message: "Username and email are required" 
+      });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        message: "Invalid email format" 
+      });
+    }
+
+    // Check for duplicate username (excluding current user)
+    const existingUsername = await User.findOne({ 
+      username: username.trim(), 
+      _id: { $ne: userId } 
+    });
+    if (existingUsername) {
+      return res.status(400).json({ 
+        message: "Username already taken" 
+      });
+    }
+
+    // Check for duplicate email (excluding current user)
+    const existingEmail = await User.findOne({ 
+      email: email.trim(), 
+      _id: { $ne: userId } 
+    });
+    if (existingEmail) {
+      return res.status(400).json({ 
+        message: "Email already taken" 
+      });
+    }
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        username: username.trim(),
+        email: email.trim(),
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Log profile update activity
+    await activity.logActivity(userId, updatedUser.username, 'profile_update', { 
+      changes: { username, email }
+    }, req);
+
+    return res.json({ 
+      success: true, 
+      user: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+        lastActive: updatedUser.lastActiveAt || updatedUser.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ message: "Failed to update profile" });
+  }
+});
+
+// PUT /password - Change current user's password
+router.put("/password", requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = res.locals.user.id;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        message: "Current password and new password are required" 
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ 
+        message: "New password must be at least 8 characters" 
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ 
+        message: "Current password is incorrect" 
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password
+    await User.findByIdAndUpdate(userId, {
+      password: hashedNewPassword,
+      updatedAt: new Date()
+    });
+
+    // Log password change activity
+    await activity.logActivity(userId, res.locals.user.username, 'password_change', { ip: req.ip }, req);
+
+    return res.json({ 
+      success: true, 
+      message: "Password changed successfully" 
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({ message: "Failed to change password" });
   }
 });
 
