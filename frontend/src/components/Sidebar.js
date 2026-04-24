@@ -30,7 +30,8 @@ const ButtonWithText = ({ text, icon, more, handler }) => {
 		Insights: "sidebar-insights-link",
 		Import: "sidebar-import-link",
 		"Sales Data": "sidebar-sales-data-link",
-		};
+		Alerts: "sidebar-alerts-link",
+	};
 		return mapping[buttonText] || null;
 	};
 
@@ -132,6 +133,10 @@ const buttons = [
         text: "Sales Data",
         handler: () => navigate("/data/manage"),
     },
+	{
+    text: "Alerts",
+    handler: () => navigate("/alerts"),
+	},
     {
         text: "Overview",
         handler: () => navigate("/dashboard"),

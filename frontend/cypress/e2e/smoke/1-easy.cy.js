@@ -186,40 +186,40 @@ describe('M6: Notification Center (50 pts)', () => {
 // ---------------------------------------------------------------------------
 // M7: Dashboard Filter Persistence (50 pts)
 // ---------------------------------------------------------------------------
-// describe('M7: Dashboard Filter Persistence (50 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard1');
-//   });
+describe('M7: Dashboard Filter Persistence (50 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard1');
+  });
 
-//   it('filter-metric, filter-date-from and filter-date-to exist on /dashboard1', () => {
-//     cy.get('[data-testid="filter-metric"]').should('exist');
-//     cy.get('[data-testid="filter-date-from"]').should('exist');
-//     cy.get('[data-testid="filter-date-to"]').should('exist');
-//   });
+  it('filter-metric, filter-date-from and filter-date-to exist on /dashboard1', () => {
+    cy.get('[data-testid="filter-metric"]').should('exist');
+    cy.get('[data-testid="filter-date-from"]').should('exist');
+    cy.get('[data-testid="filter-date-to"]').should('exist');
+  });
 
-//   it('filter-reset-button exists on /dashboard1', () => {
-//     cy.get('[data-testid="filter-reset-button"]').should('exist');
-//   });
-// });
+  it('filter-reset-button exists on /dashboard1', () => {
+    cy.get('[data-testid="filter-reset-button"]').should('exist');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // M8: Breadcrumb Navigation (60 pts)
 // ---------------------------------------------------------------------------
-// describe('M8: Breadcrumb Navigation (60 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard1');
-//   });
+describe('M8: Breadcrumb Navigation (60 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard1');
+  });
 
-//   it('breadcrumb-bar is visible on an authenticated page', () => {
-//     cy.get('[data-testid="breadcrumb-bar"]').should('be.visible');
-//   });
+  it('breadcrumb-bar is visible on an authenticated page', () => {
+    cy.get('[data-testid="breadcrumb-bar"]').should('be.visible');
+  });
 
-//   it('breadcrumb-home and breadcrumb-current exist inside breadcrumb-bar', () => {
-//     cy.get('[data-testid="breadcrumb-bar"]').within(() => {
-//       cy.get('[data-testid="breadcrumb-home"]').should('exist');
-//       cy.get('[data-testid="breadcrumb-current"]').should('exist');
-//     });
-//   });
-// });
+  it('breadcrumb-home and breadcrumb-current exist inside breadcrumb-bar', () => {
+    cy.get('[data-testid="breadcrumb-bar"]').within(() => {
+      cy.get('[data-testid="breadcrumb-home"]').should('exist');
+      cy.get('[data-testid="breadcrumb-current"]').should('exist');
+    });
+  });
+});

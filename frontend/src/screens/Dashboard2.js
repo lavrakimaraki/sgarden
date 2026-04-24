@@ -4,6 +4,7 @@ import { Star as StarIcon, StarBorder as StarBorderIcon, Download as DownloadIco
 import Dropdown from "../components/Dropdown.js";
 import Card from "../components/Card.js";
 import Plot from "../components/Plot.js";
+import NotesPanel from "../components/NotesPanel.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportToCSV, exportArrayToCSV } from "../utils/csv-export.js";
 
@@ -211,6 +212,7 @@ const Dashboard = () => {
                     </Card>
                 </Grid>
             </Grid>
+            <NotesPanel dashboardId="dashboard2" />
         </Grid>
     );
 };

@@ -136,7 +136,7 @@ const Header = ({ isAuthenticated }) => {
 			onClose={handleMobileMenuClose}
 		>
 			{buttons.map((button) => (
-				<MenuItem key={button.text} onClick={button.handler} data-testid={button.testId}>
+				<MenuItem key={button.text} onClick={button.handler}>
 					{button.text === "Profile" ? (
 						<AccountCircle sx={{ width: "20px", height: "20px", mr: "5px" }} />
 					) : (
