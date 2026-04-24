@@ -214,28 +214,28 @@ const Header = ({ isAuthenticated }) => {
 						className="header-container"
 						separator={<span data-testid="breadcrumb-separator">›</span>}
 					>
-						<CrumpLink to="/" data-testid="breadcrumb-home">
+						<Link to="/" data-testid="breadcrumb-home" style={{ display: 'flex', textDecoration: 'none', color: 'inherit' }}>
 							Home
-						</CrumpLink>
+						</Link>
 						{pathnames.map((path, ind) => {
 							const isLast = ind === pathnames.length - 1;
 							const text = capitalize(path);
 							const to = `/${pathnames.slice(0, ind + 1).join("/")}`;
 							if (isLast) {
 								return (
-									<Typography
+									<span
 										key={`crump_${ind}`}
 										data-testid="breadcrumb-current"
-										sx={{ color: 'text.primary' }}
+										style={{ color: 'inherit' }}
 									>
 										{text}
-									</Typography>
+									</span>
 								);
 							}
 							return (
-								<CrumpLink key={`crump_${ind}`} to={to}>
+								<Link key={`crump_${ind}`} to={to} style={{ display: 'flex', textDecoration: 'none', color: 'inherit' }}>
 									{text}
-								</CrumpLink>
+								</Link>
 							);
 						})}
 					</Breadcrumbs>

@@ -280,7 +280,6 @@ const Dashboard = () => {
                 </Grid>
             </Grid>
             <NotesPanel dashboardId="dashboard" />
-            <RealtimePresence />
         </Grid>
     );
 };
