@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Grid, Typography, Box, IconButton } from "@mui/material";
+import { Grid, Typography, Box, IconButton, Button } from "@mui/material";
 import { Star as StarIcon, StarBorder as StarBorderIcon, Download as DownloadIcon } from "@mui/icons-material";
 import Dropdown from "../components/Dropdown.js";
 import Card from "../components/Card.js";
@@ -144,35 +144,49 @@ const MetricChart = ({ title, months, data, metricKey }) => {
 };
 
 // Date range picker component
-const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange }) => (
-  <Box display="flex" justifyContent="space-between" mb={1}>
-    <Grid item xs={12} sm={6} display="flex" flexDirection="row" alignItems="center">
+const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange, onReset }) => (
+  <Box display="flex" justifyContent="space-between" mb={1} alignItems="center" flexWrap="wrap" gap={2}>
+    <Grid item xs={12} sm={4} display="flex" flexDirection="row" alignItems="center">
       <Typography variant="subtitle1" align="center" mr={2}>
         From:
       </Typography>
-      <DatePicker
-        width="200px"
-        views={["month", "year"]}
-        inputFormat="MM/YYYY"
-        label="From"
-        background="greyDark"
-        value={fromDate}
-        onChange={onFromDateChange}
-      />
+      <Box data-testid="filter-date-from">
+        <DatePicker
+          width="200px"
+          views={["month", "year"]}
+          inputFormat="MM/YYYY"
+          label="From"
+          background="greyDark"
+          value={fromDate}
+          onChange={onFromDateChange}
+        />
+      </Box>
     </Grid>
-    <Grid item xs={12} sm={6} display="flex" flexDirection="row" alignItems="center" justifyContent="flex-end">
+    <Grid item xs={12} sm={4} display="flex" flexDirection="row" alignItems="center">
       <Typography variant="subtitle1" align="center" mr={2}>
         To:
       </Typography>
-      <DatePicker
-        width="200px"
-        views={["month", "year"]}
-        inputFormat="MM/YYYY"
-        label="To"
-        background="greyDark"
-        value={toDate}
-        onChange={onToDateChange}
-      />
+      <Box data-testid="filter-date-to">
+        <DatePicker
+          width="200px"
+          views={["month", "year"]}
+          inputFormat="MM/YYYY"
+          label="To"
+          background="greyDark"
+          value={toDate}
+          onChange={onToDateChange}
+        />
+      </Box>
+    </Grid>
+    <Grid item>
+      <Button
+        data-testid="filter-reset-button"
+        variant="outlined"
+        onClick={onReset}
+        sx={{ color: 'white', borderColor: 'white' }}
+      >
+        Reset Filters
+      </Button>
     </Grid>
   </Box>
 );
@@ -242,16 +256,18 @@ const KeyMetricCard = ({ selectedMetric, selectedRegion, data, onMetricChange })
           <Typography width="fit-content" variant="subtitle1">
             Metric:
           </Typography>
-          <Dropdown
-            width="50%"
-            height="40px"
-            size="small"
-            placeholder="Select"
-            background="greyDark"
-            items={AVAILABLE_METRICS.map((metric) => ({ value: metric, text: metric }))}
-            value={selectedMetric}
-            onChange={onMetricChange}
-          />
+          <Box data-testid="filter-metric" sx={{ width: '50%' }}>
+              <Dropdown
+                  width="100%"
+                  height="40px"
+                  size="small"
+                  placeholder="Select"
+                  background="greyDark"
+                  items={AVAILABLE_METRICS.map((metric) => ({ value: metric, text: metric }))}
+                  value={selectedMetric}
+                  onChange={onMetricChange}
+              />
+          </Box>
         </Box>
       </Card>
     </Grid>
