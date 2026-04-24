@@ -159,29 +159,29 @@ describe('M5: Activity Log (80 pts)', () => {
 // ---------------------------------------------------------------------------
 // M6: Notification Center (50 pts)
 // ---------------------------------------------------------------------------
-// describe('M6: Notification Center (50 pts)', () => {
-//   beforeEach(() => {
-//     cy.loginAsAdmin();
-//     cy.visit('/dashboard');
-//   });
+describe('M6: Notification Center (50 pts)', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/dashboard');
+  });
 
-//   it('notification-bell exists in the header', () => {
-//     cy.get('[data-testid="notification-bell"]').should('exist');
-//   });
+  it('notification-bell exists in the header', () => {
+    cy.get('[data-testid="notification-bell"]').should('exist');
+  });
 
-//   it('clicking notification-bell opens notification-dropdown', () => {
-//     cy.get('[data-testid="notification-bell"]').click();
-//     cy.get('[data-testid="notification-dropdown"]').should('be.visible');
-//   });
+  it('clicking notification-bell opens notification-dropdown', () => {
+    cy.get('[data-testid="notification-bell"]').click();
+    cy.get('[data-testid="notification-dropdown"]').should('be.visible');
+  });
 
-//   it('notification-mark-all-read and notification-clear-all exist in dropdown', () => {
-//     cy.get('[data-testid="notification-bell"]').click();
-//     cy.get('[data-testid="notification-dropdown"]').within(() => {
-//       cy.get('[data-testid="notification-mark-all-read"]').should('exist');
-//       cy.get('[data-testid="notification-clear-all"]').should('exist');
-//     });
-//   });
-// });
+  it('notification-mark-all-read and notification-clear-all exist in dropdown', () => {
+    cy.get('[data-testid="notification-bell"]').click();
+    cy.get('[data-testid="notification-dropdown"]').within(() => {
+      cy.get('[data-testid="notification-mark-all-read"]').should('exist');
+      cy.get('[data-testid="notification-clear-all"]').should('exist');
+    });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // M7: Dashboard Filter Persistence (50 pts)
