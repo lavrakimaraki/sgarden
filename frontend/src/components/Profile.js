@@ -234,22 +234,22 @@ const Profile = () => {
 
 	if (loading) {
 		return (
-			<Container data-testid="profile-page" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+			<Box data-testid="profile-page" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
 				<CircularProgress />
-			</Container>
+			</Box>
 		);
 	}
 
 	if (!user) {
 		return (
-			<Container data-testid="profile-page" sx={{ mt: 4 }}>
+			<Box data-testid="profile-page" sx={{ height: '100%' }}>
 				<Typography>Failed to load profile</Typography>
-			</Container>
+			</Box>
 		);
 	}
 
 	return (
-		<Container maxWidth="md" data-testid="profile-page" sx={{ mt: 4, mb: 4 }}>
+		<Box data-testid="profile-page" sx={{ p: 4, overflowY: 'auto', height: '100%' }}>
 			<Paper elevation={3} sx={{ p: 4 }}>
 				<Typography variant="h4" gutterBottom>
 					Profile Settings
@@ -278,7 +278,7 @@ const Profile = () => {
 								<Typography 
 									data-testid="profile-username"
 									variant="body1"
-									sx={{ p: 2, border: 1, borderColor: 'grey.300', borderRadius: 1 }}
+									sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
 								>
 									<strong>Username:</strong> {user.username}
 								</Typography>
@@ -300,7 +300,7 @@ const Profile = () => {
 								<Typography 
 									data-testid="profile-email"
 									variant="body1"
-									sx={{ p: 2, border: 1, borderColor: 'grey.300', borderRadius: 1 }}
+									sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
 								>
 									<strong>Email:</strong> {user.email}
 								</Typography>
@@ -311,7 +311,7 @@ const Profile = () => {
 							<Typography 
 								data-testid="profile-role"
 								variant="body1"
-								sx={{ p: 2, border: 1, borderColor: 'grey.300', borderRadius: 1 }}
+								sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
 							>
 								<strong>Role:</strong> {user.role || 'user'}
 							</Typography>
@@ -321,7 +321,7 @@ const Profile = () => {
 							<Typography 
 								data-testid="profile-created-at"
 								variant="body1"
-								sx={{ p: 2, border: 1, borderColor: 'grey.300', borderRadius: 1 }}
+								sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
 							>
 								<strong>Account Created:</strong> {formatDate(user.createdAt)}
 							</Typography>
@@ -331,7 +331,7 @@ const Profile = () => {
 							<Typography 
 								data-testid="profile-last-active"
 								variant="body1"
-								sx={{ p: 2, border: 1, borderColor: 'grey.300', borderRadius: 1 }}
+								sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
 							>
 								<strong>Last Active:</strong> {formatDate(user.lastActive || user.updatedAt)}
 							</Typography>
@@ -489,7 +489,7 @@ const Profile = () => {
 					{snackbar.message}
 				</Alert>
 			</Snackbar>
-		</Container>
+		</Box>
 	);
 };
 

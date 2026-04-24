@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Grid, Typography, Box } from "@mui/material";
+import { Grid, Typography, Box, IconButton } from "@mui/material";
+import { Star as StarIcon, StarBorder as StarBorderIcon, Download as DownloadIcon } from "@mui/icons-material";
 import Dropdown from "../components/Dropdown.js";
 import Card from "../components/Card.js";
 import Plot from "../components/Plot.js";
 import DatePicker from "../components/DatePicker.js";
 import Map from "../components/Map.js";
+import { useBookmarks } from "../hooks/useBookmarks.js";
+import { exportArrayToCSV } from "../utils/csv-export.js";
 
 import colors from "../_colors.scss";
 
@@ -98,21 +101,42 @@ const MetricChart = ({ title, months, data, metricKey }) => {
     }
   ], [months, data]);
 
+  const handleExport = () => {
+    const chartName = metricKey.toLowerCase();
+    exportArrayToCSV(data, months, chartName);
+  };
+
   return (
     <Grid item xs={12} md={6}>
-      <Plot
-        data={plotData}
-        showLegend={false}
+      <Card
         title={title}
-        titleColor="primary"
-        titleFontSize={16}
-        displayBar={false}
-        height="250px"
-        annotations={annotations}
-      />
-      <Typography variant="body1" textAlign="center">
-        {`Average: ${stats.average.toFixed(2)}%`}
-      </Typography>
+        titleAction={
+          <IconButton
+            data-testid={`export-csv-${metricKey.toLowerCase()}`}
+            onClick={handleExport}
+            sx={{ color: 'white', padding: '4px' }}
+            size="small"
+          >
+            <DownloadIcon sx={{ fontSize: '20px' }} />
+          </IconButton>
+        }
+      >
+        <Box>
+          <Plot
+            data={plotData}
+            showLegend={false}
+            title={title}
+            titleColor="primary"
+            titleFontSize={16}
+            displayBar={false}
+            height="250px"
+            annotations={annotations}
+          />
+          <Typography variant="body1" textAlign="center">
+            {`Average: ${stats.average.toFixed(2)}%`}
+          </Typography>
+        </Box>
+      </Card>
     </Grid>
   );
 };
@@ -152,64 +176,85 @@ const DateRangePicker = ({ fromDate, toDate, onFromDateChange, onToDateChange })
 );
 
 // Key metric card component
-const KeyMetricCard = ({ selectedMetric, selectedRegion, data, onMetricChange }) => (
-  <Grid item width="100%">
-    <Card
-      title="Key Metric"
-      footer={
-        <Box
-          width="100%"
-          height="100px"
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-          backgroundColor="greyDark.main"
-          py={1}
-        >
-          {selectedMetric ? (
-            <>
-              <Typography variant="body">
-                {`Latest value of ${selectedMetric} for ${selectedRegion}`}
+const KeyMetricCard = ({ selectedMetric, selectedRegion, data, onMetricChange }) => {
+  const handleExport = () => {
+    const fileName = selectedMetric ? selectedMetric.toLowerCase().replace(/\s+/g, '-') : 'key-metric';
+    exportArrayToCSV(
+      [data.keyMetric.value],
+      [data.keyMetric.date.toISOString()],
+      fileName
+    );
+  };
+
+  return (
+    <Grid item width="100%">
+      <Card
+        title="Key Metric"
+        titleAction={
+          <IconButton
+            data-testid="export-csv-key-metric"
+            onClick={handleExport}
+            sx={{ color: 'white', padding: '4px' }}
+            size="small"
+          >
+            <DownloadIcon sx={{ fontSize: '20px' }} />
+          </IconButton>
+        }
+        footer={
+          <Box
+            width="100%"
+            height="100px"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            backgroundColor="greyDark.main"
+            py={1}
+          >
+            {selectedMetric ? (
+              <>
+                <Typography variant="body">
+                  {`Latest value of ${selectedMetric} for ${selectedRegion}`}
+                </Typography>
+                <Typography variant="body1" fontWeight="bold" color="primary.main">
+                  {`${data.keyMetric.date.toLocaleString("en-GB", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                  })} - ${data.keyMetric.value.toFixed(2)}%`}
+                </Typography>
+              </>
+            ) : (
+              <Typography variant="body1" fontWeight="bold" color="white.main">
+                No metric selected
               </Typography>
-              <Typography variant="body1" fontWeight="bold" color="primary.main">
-                {`${data.keyMetric.date.toLocaleString("en-GB", {
-                  weekday: "short",
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit"
-                })} - ${data.keyMetric.value.toFixed(2)}%`}
-              </Typography>
-            </>
-          ) : (
-            <Typography variant="body1" fontWeight="bold" color="white.main">
-              No metric selected
-            </Typography>
-          )}
+            )}
+          </Box>
+        }
+      >
+        <Box height="100px" display="flex" alignItems="center" justifyContent="space-between">
+          <Typography width="fit-content" variant="subtitle1">
+            Metric:
+          </Typography>
+          <Dropdown
+            width="50%"
+            height="40px"
+            size="small"
+            placeholder="Select"
+            background="greyDark"
+            items={AVAILABLE_METRICS.map((metric) => ({ value: metric, text: metric }))}
+            value={selectedMetric}
+            onChange={onMetricChange}
+          />
         </Box>
-      }
-    >
-      <Box height="100px" display="flex" alignItems="center" justifyContent="space-between">
-        <Typography width="fit-content" variant="subtitle1">
-          Metric:
-        </Typography>
-        <Dropdown
-          width="50%"
-          height="40px"
-          size="small"
-          placeholder="Select"
-          background="greyDark"
-          items={AVAILABLE_METRICS.map((metric) => ({ value: metric, text: metric }))}
-          value={selectedMetric}
-          onChange={onMetricChange}
-        />
-      </Box>
-    </Card>
-  </Grid>
-);
+      </Card>
+    </Grid>
+  );
+};
 
 // Main Dashboard component
 const Dashboard = () => {
@@ -230,6 +275,7 @@ const Dashboard = () => {
     profit: [],
     growthRate: []
   });
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   // Generate plot data based on date range
   const generatePlotData = useCallback((fromD, toD) => {
@@ -301,9 +347,22 @@ const Dashboard = () => {
 
   return (
     <Grid container py={2} flexDirection="column">
-      <Typography variant="h4" gutterBottom color="white.main">
-        Analytics
-      </Typography>
+      <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
+          Analytics
+        </Typography>
+        <IconButton
+          data-testid="bookmark-toggle-dashboard1"
+          onClick={() => toggleBookmark('/dashboard1')}
+          sx={{ color: 'white' }}
+        >
+          {isBookmarked('/dashboard1') ? (
+            <StarIcon data-testid="bookmark-active-dashboard1" sx={{ color: 'warning.main' }} />
+          ) : (
+            <StarBorderIcon data-testid="bookmark-toggle-dashboard1" />
+          )}
+        </IconButton>
+      </Grid>
 
       <Grid item style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "20px" }}>
         <Typography variant="body1" style={{ marginRight: "10px" }} color="white.main">
@@ -325,27 +384,44 @@ const Dashboard = () => {
             onMetricChange={handleMetricChange}
           />
           <Grid item width="100%">
-            <Card title="Regional Overview">
+            <Card 
+              title="Regional Overview"
+              titleAction={
+                <IconButton
+                  data-testid="export-csv-regional-overview"
+                  onClick={() => console.log('No data available for export')}
+                  sx={{ color: 'white', padding: '4px' }}
+                  size="small"
+                >
+                  <DownloadIcon sx={{ fontSize: '20px' }} />
+                </IconButton>
+              }
+            >
               <Map />
             </Card>
           </Grid>
         </Grid>
 
         <Grid item sm={12} md={8}>
-          <Card title="Trends">
-            <DateRangePicker
-              fromDate={fromDate}
-              toDate={toDate}
-              onFromDateChange={handleFromDateChange}
-              onToDateChange={handleToDateChange}
-            />
+          <Box>
+            <Typography variant="h6" color="white.main" sx={{ mb: 2 }}>
+              Trends
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <DateRangePicker
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={handleFromDateChange}
+                onToDateChange={handleToDateChange}
+              />
+            </Box>
             <Grid container spacing={1} width="100%">
               <MetricChart title="Revenue" months={months} data={data.revenue} metricKey="revenue" />
               <MetricChart title="Expenses" months={months} data={data.expenses} metricKey="expenses" />
               <MetricChart title="Profit" months={months} data={data.profit} metricKey="profit" />
               <MetricChart title="Growth Rate" months={months} data={data.growthRate} metricKey="growthRate" />
             </Grid>
-          </Card>
+          </Box>
         </Grid>
       </Grid>
     </Grid>

@@ -62,3 +62,29 @@ export const userAPI = {
     return await response.json();
   }
 };
+
+// Activity tracking API
+export const activityAPI = {
+  // Log a dashboard view
+  logDashboardView: async (dashboardPath) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return; // Don't log if not authenticated
+      
+      await fetch('/api/activity/log', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          actionType: 'dashboard_view',
+          details: { dashboard: dashboardPath }
+        })
+      });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+      // Don't throw - silently fail to not disrupt user experience
+    }
+  }
+};

@@ -8,11 +8,14 @@ const init = async () => {
 	} = process.env;
 
 	mongoose.set("strictQuery", false);
+	mongoose.set("bufferCommands", false);
 	const connection = await mongoose.connect(DATABASE_URL).catch((error) => {
-		console.error(error.message);
+		console.error("Database connection failed:", error.message);
 		return null;
 	});
-	console.log("Connected to db!");
+	if (connection) {
+		console.log("Connected to db!");
+	}
 
 	return connection;
 };

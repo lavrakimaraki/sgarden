@@ -6,6 +6,7 @@ import publicRoutes from "./public.js";
 import userSystemRoutes from "./user-system.js";
 import userRoutes from "./user.js";
 import dataRoutes from "./data.js";
+import activityRoutes from "./activity.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -22,6 +23,9 @@ router.use(attachUser);
 router.use("/user/", userRoutes);
 
 router.use("/data/", dataRoutes);
+
+// Activity tracking routes (protected)
+router.use("/", activityRoutes);
 
 router.get("/test/", (req, res) => {
 	const { user } = res.locals;

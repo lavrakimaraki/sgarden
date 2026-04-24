@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 // import { promisify } from 'util';
-import { validations, email } from '../utils/index.js';
+import { validations, email, activity } from '../utils/index.js';
 import { User, Reset, Invitation } from '../models/index.js';
 
 const router = express.Router();
@@ -120,6 +120,9 @@ router.post(
 				});
 			}
 
+			// Log login activity
+			await activity.logActivity(user._id, user.username, 'login', { ip: req.ip }, req);
+
 			// Sanitize user data before sending
 			return res.json({
 				success: true,
@@ -137,6 +140,13 @@ router.post(
 				}),
 			});
 		} catch (error) {
+			if (error?.name === "MongoNotConnectedError" || /buffering timed out/i.test(error?.message)) {
+				return res.status(503).json({
+					success: false,
+					message: "Database unavailable. Please try again later.",
+				});
+			}
+
 			return next(error);
 		}
 	}

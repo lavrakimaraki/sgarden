@@ -1,6 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
-import { email, validations } from "../utils/index.js";
+import { email, validations, activity } from "../utils/index.js";
 import { User, Invitation } from "../models/index.js";
 
 const router = express.Router({ mergeParams: true });
@@ -224,6 +224,11 @@ router.put("/profile", requireAuth, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Log profile update activity
+    await activity.logActivity(userId, updatedUser.username, 'profile_update', { 
+      changes: { username, email }
+    }, req);
+
     return res.json({ 
       success: true, 
       user: {
@@ -283,6 +288,9 @@ router.put("/password", requireAuth, async (req, res) => {
       password: hashedNewPassword,
       updatedAt: new Date()
     });
+
+    // Log password change activity
+    await activity.logActivity(userId, res.locals.user.username, 'password_change', { ip: req.ip }, req);
 
     return res.json({ 
       success: true, 

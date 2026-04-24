@@ -6,11 +6,14 @@ import {
 	ExpandMore,
 	MoreVert as MoreIcon,
 	AccountCircle,
+	Brightness7 as SunIcon,
+	Brightness4 as MoonIcon,
 } from "@mui/icons-material";
 import { makeStyles } from "@mui/styles";
 import { Image } from "mui-image";
 
 import { jwt, capitalize } from "../utils/index.js";
+import { useThemeMode } from "../index.js";
 import logo from "../assets/images/logo.png";
 import { ReactComponent as LogoutIcon } from "../assets/images/logout.svg";
 
@@ -18,7 +21,7 @@ const useStyles = makeStyles((theme) => ({
 	grow: {
 		flexGrow: 1,
 		flexBasis: "auto",
-		background: "white",
+		background: theme.palette.background.paper,
 		zIndex: 1200,
 		height: "70px",
 	},
@@ -49,7 +52,7 @@ const useStyles = makeStyles((theme) => ({
 	avatar: {
 		width: "30px",
 		height: "30px",
-		background: "white",
+		background: theme.palette.mode === 'dark' ? theme.palette.grey[700] : "white",
 	},
 	iconButton: {
 		padding: "3px 6px",
@@ -93,6 +96,7 @@ const ButtonWithText = ({ text, icon, more, handler, testId }) => (
 
 const Header = ({ isAuthenticated }) => {
 	const classes = useStyles();
+	const { themeMode, onThemeToggle } = useThemeMode();
 
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -135,7 +139,9 @@ const Header = ({ isAuthenticated }) => {
 					{button.text === "Profile" ? (
 						<AccountCircle sx={{ width: "20px", height: "20px", mr: "5px" }} />
 					) : (
-						<Image src={button.icon} width="20px" sx={{ fill: "third" }} />
+						<Box sx={{ width: "20px", height: "20px", mr: "5px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+							{button.icon}
+						</Box>
 					)}
 					<p style={{ marginLeft: "5px" }}>{button.text}</p>
 					{button.more && <ExpandMore />}
@@ -160,6 +166,17 @@ const Header = ({ isAuthenticated }) => {
 						<Image src={logo} alt="Logo" sx={{ p: 0, my: 0, height: "100%", maxWidth: "200px" }} />
 					</Box>
 					<Box className={classes.grow} style={{ height: "100%" }} />
+					<IconButton
+						onClick={onThemeToggle}
+						data-testid="dark-mode-toggle"
+						sx={{ mr: 2 }}
+					>
+						{themeMode === "light" ? (
+							<SunIcon data-testid="theme-indicator-light" sx={{ color: "warning.main" }} />
+						) : (
+							<MoonIcon data-testid="theme-indicator-dark" sx={{ color: "info.main" }} />
+						)}
+					</IconButton>
 					{isAuthenticated
 					&& (
 						<>
