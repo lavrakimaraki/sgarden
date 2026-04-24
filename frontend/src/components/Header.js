@@ -163,7 +163,8 @@ const Header = ({ isAuthenticated }) => {
 						<Image src={logo} alt="Logo" sx={{ p: 0, my: 0, height: "100%", maxWidth: "200px" }} />
 					</Box>
 					<Box className={classes.grow} style={{ height: "100%" }} />
-					{isAuthenticated && <GlobalSearch /> && <LanguageSwitcher />}
+					{isAuthenticated && <GlobalSearch />}
+					{isAuthenticated && <LanguageSwitcher />}
 					<IconButton
 						onClick={onThemeToggle}
 						data-testid="dark-mode-toggle"
