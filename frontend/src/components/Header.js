@@ -3,11 +3,12 @@ import { styled } from "@mui/material/styles";
 import { AppBar, Toolbar, Typography, Menu, MenuItem, IconButton, Button, Paper, Breadcrumbs, Box } from "@mui/material";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-	ExpandMore,
-	MoreVert as MoreIcon,
-	AccountCircle,
-	Brightness7 as SunIcon,
-	Brightness4 as MoonIcon,
+    ExpandMore,
+    MoreVert as MoreIcon,
+    AccountCircle,
+    Brightness7 as SunIcon,
+    Brightness4 as MoonIcon,
+    Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { makeStyles } from "@mui/styles";
 import { Image } from "mui-image";
@@ -19,6 +20,7 @@ import { ReactComponent as LogoutIcon } from "../assets/images/logout.svg";
 import NotificationCenter from "./NotificationCenter.js";
 import GlobalSearch from "./GlobalSearch.js";
 import LanguageSwitcher from "./LanguageSwitcher.js";
+
 
 const useStyles = makeStyles((theme) => ({
 	grow: {
@@ -118,6 +120,12 @@ const Header = ({ isAuthenticated }) => {
 			handler: () => navigate("/profile"),
 			testId: "profile-nav-link"
 		},
+		    {
+        icon: <SettingsIcon className={classes.svgIcon} />,
+        text: "Settings",
+        handler: () => navigate("/settings"),
+        testId: "settings-nav-link"
+    	},
 		{
 			icon: <LogoutIcon className={classes.svgIcon} />,
 			text: "Logout",

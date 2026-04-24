@@ -8,6 +8,7 @@ import NotesPanel from "../components/NotesPanel.js";
 import ComparisonMode from "../components/ComparisonMode.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportToCSV, exportArrayToCSV } from "../utils/csv-export.js";
+import RealtimePresence from "../components/RealtimePresence.js";
 
 import { getData } from "../api/index.js";
 
@@ -30,6 +31,7 @@ const Dashboard = () => {
 
     return (
         <Grid container py={2} flexDirection="column">
+            <RealtimePresence />
             <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
                     Insights
@@ -216,6 +218,7 @@ const Dashboard = () => {
                 </Grid>
             </Grid>
             <NotesPanel dashboardId="dashboard2" />
+            <RealtimePresence />
         </Grid>
     );
 };

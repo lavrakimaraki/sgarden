@@ -156,49 +156,51 @@ const Reports = () => {
 									Click "New Report" to create your first report
 								</Typography>
 							</Box>
-						) : (
-							reports.map((report) => (
-								<React.Fragment key={report.id}>
-									<ListItem
-										data-testid={`reports-item-${report.id}`}
-										secondaryAction={
-											<Box sx={{ display: 'flex', gap: 1 }}>
-												<IconButton
-													data-testid={`reports-item-view-${report.id}`}
-													size="small"
-													color="primary"
-													onClick={() => handleView(report.id)}
-												>
-													<ViewIcon fontSize="small" />
-												</IconButton>
-												<IconButton
-													data-testid={`reports-item-delete-${report.id}`}
-													size="small"
-													color="error"
-													onClick={() => handleDelete(report.id)}
-												>
-													<DeleteIcon fontSize="small" />
-												</IconButton>
-											</Box>
-										}
-									>
-										<ListItemText
-											primary={
-												<span data-testid={`reports-item-title-${report.id}`}>
-													{report.title}
-												</span>
-											}
-											secondary={
-												<span data-testid={`reports-item-date-${report.id}`}>
-													Created: {new Date(report.createdAt).toLocaleString()}
-												</span>
-											}
-										/>
-									</ListItem>
-									<Divider component="li" />
-								</React.Fragment>
-							))
-						)}
+                            ) : (
+                                reports.map((report) => (
+                                    <React.Fragment key={report.id}>
+                                        <ListItem
+                                            data-testid={`reports-item-${report.id}`}
+                                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                        >
+                                            <ListItemText
+                                                primary={
+                                                    <span data-testid={`reports-item-title-${report.id}`}>
+                                                        {report.title}
+                                                    </span>
+                                                }
+                                                secondary={
+                                                    <span data-testid={`reports-item-date-${report.id}`}>
+                                                        Created: {new Date(report.createdAt).toLocaleString()}
+                                                    </span>
+                                                }
+                                                sx={{ flexGrow: 1, mr: 2 }}
+                                            />
+                                            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                                                <Button
+                                                    data-testid={`reports-item-view-${report.id}`}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    startIcon={<ViewIcon />}
+                                                    onClick={() => handleView(report.id)}
+                                                >
+                                                    View
+                                                </Button>
+                                                <IconButton
+                                                    data-testid={`reports-item-delete-${report.id}`}
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleDelete(report.id)}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        </ListItem>
+                                        <Divider component="li" />
+                                    </React.Fragment>
+                                ))
+                            )}
 					</List>
 				</Paper>
 			</Paper>
