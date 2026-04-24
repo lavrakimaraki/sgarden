@@ -30,6 +30,7 @@ import Dashboard1 from "./screens/Dashboard1.js";
 import Dashboard2 from "./screens/Dashboard2.js";
 import Activity from "./screens/Activity.js";
 import Profile from "./components/Profile.js";
+import Import from "./screens/Import.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
 
@@ -120,6 +121,7 @@ const App = () => {
 									<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
 									<Route path="activity" element={<AdminOnly c={<Activity />} />} />
 									<Route path="users" element={<AdminOnly c={<Users />} />} />
+									<Route path="import" element={<Protected c={<Import />} />} />
 									<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
 									<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
 									<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />

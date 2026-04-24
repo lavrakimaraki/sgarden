@@ -22,12 +22,13 @@ const useStyles = makeStyles((theme) => ({
 
 const ButtonWithText = ({ text, icon, more, handler }) => {
 	const getTestId = (buttonText) => {
-		const mapping = {
-			Activity: "sidebar-activity-link",
-			Users: "sidebar-users-link",
-			Overview: "sidebar-overview-link",
-			Analytics: "sidebar-analytics-link",
-			Insights: "sidebar-insights-link",
+	const mapping = {
+		Activity: "sidebar-activity-link",
+		Users: "sidebar-users-link",
+		Overview: "sidebar-overview-link",
+		Analytics: "sidebar-analytics-link",
+		Insights: "sidebar-insights-link",
+		Import: "sidebar-import-link",
 		};
 		return mapping[buttonText] || null;
 	};
@@ -126,6 +127,12 @@ const Sidebar = ({ isSmall: sidebarIsSmall }) => {
 				navigate("/users");
 			},
 		}] : []),
+		{
+			text: "Import",
+			handler: () => {
+				navigate("/import");
+			},
+		},		
 		{
 			text: "Overview",
 			handler: () => {

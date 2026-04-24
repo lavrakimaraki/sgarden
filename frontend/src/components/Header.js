@@ -178,27 +178,27 @@ const Header = ({ isAuthenticated }) => {
 							<MoonIcon data-testid="theme-indicator-dark" sx={{ color: "info.main" }} />
 						)}
 					</IconButton>
-				{isAuthenticated && <NotificationCenter />}
-				{isAuthenticated
-				&& (
-					<>
-						<Box sx={{ display: { xs: "none", sm: "none", md: "flex" }, height: "100%", py: 1 }}>
-							{buttons.map((button) => (
-								<ButtonWithText
-									key={button.text}
-									icon={button.icon}
-									text={button.text}
-									handler={button.handler}
-									more={button.more}
-									testId={button.testId}
-								/>
-							))}
-						</Box>
-						<Box sx={{ display: { xs: "flex", sm: "flex", md: "none" } }}>
-							<IconButton color="primary" onClick={handleMobileMenuOpen}><MoreIcon /></IconButton>
-						</Box>
-					</>
-				)}
+					{isAuthenticated && <NotificationCenter />}
+					{isAuthenticated
+					&& (
+						<>
+							<Box sx={{ display: "flex", height: "100%", py: 1 }}>
+								{buttons.map((button) => (
+									<ButtonWithText
+										key={button.text}
+										icon={button.icon}
+										text={button.text}
+										handler={button.handler}
+										more={button.more}
+										testId={button.testId}
+									/>
+								))}
+							</Box>
+							<Box sx={{ display: "none" }}>
+								<IconButton color="primary" onClick={handleMobileMenuOpen}><MoreIcon /></IconButton>
+							</Box>
+						</>
+					)}
 				</Toolbar>
 			</AppBar>
 			{isAuthenticated

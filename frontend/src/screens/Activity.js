@@ -14,13 +14,35 @@ import {
 	CircularProgress,
 	Pagination,
 	Grid,
-	Dropdown as MuiSelect,
 	FormControl,
 	InputLabel,
 	Select,
 	MenuItem,
 } from '@mui/material';
-import { userAPI } from '../utils/api';
+import { jwt } from '../utils/index.js';
+
+const actionTypes = ['login', 'password_change', 'profile_update', 'dashboard_view'];
+
+const getActionLabel = (actionType) => {
+	const labels = {
+		login: 'Login',
+		password_change: 'Password Change',
+		profile_update: 'Profile Update',
+		dashboard_view: 'Dashboard View',
+	};
+	return labels[actionType] || actionType;
+};
+
+const formatDate = (dateString) => {
+	if (!dateString) return 'N/A';
+	return new Date(dateString).toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+};
 
 const Activity = () => {
 	const [loading, setLoading] = useState(true);
@@ -30,15 +52,12 @@ const Activity = () => {
 	const [pagination, setPagination] = useState({ total: 0, pages: 1 });
 	const [limit] = useState(20);
 
-	// Filters
 	const [filters, setFilters] = useState({
 		userId: '',
 		actionType: '',
 		dateFrom: '',
 		dateTo: '',
 	});
-
-	const actionTypes = ['login', 'password_change', 'profile_update', 'dashboard_view'];
 
 	useEffect(() => {
 		fetchActivities();
@@ -47,6 +66,7 @@ const Activity = () => {
 	const fetchActivities = async () => {
 		try {
 			setLoading(true);
+			const token = jwt.getToken();
 			const params = new URLSearchParams({
 				page,
 				limit,
@@ -58,7 +78,8 @@ const Activity = () => {
 
 			const response = await fetch(`/api/activity?${params}`, {
 				headers: {
-					Authorization: `Bearer ${localStorage.getItem('token')}`,
+					'x-access-token': token,
+					'Content-Type': 'application/json',
 				},
 			});
 
@@ -68,10 +89,11 @@ const Activity = () => {
 
 			const data = await response.json();
 			setActivities(data.data || []);
-			setPagination(data.pagination);
+			setPagination(data.pagination || { total: 0, pages: 1 });
 			setUsers(data.users || []);
 		} catch (error) {
 			console.error('Error fetching activities:', error);
+			setActivities([]);
 		} finally {
 			setLoading(false);
 		}
@@ -95,27 +117,6 @@ const Activity = () => {
 		setPage(1);
 	};
 
-	const formatDate = (dateString) => {
-		if (!dateString) return 'N/A';
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit',
-		});
-	};
-
-	const getActionLabel = (actionType) => {
-		const labels = {
-			login: 'Login',
-			password_change: 'Password Change',
-			profile_update: 'Profile Update',
-			dashboard_view: 'Dashboard View',
-		};
-		return labels[actionType] || actionType;
-	};
-
 	return (
 		<Box data-testid="activity-page" sx={{ p: 4, overflowY: 'auto', height: '100%' }}>
 			<Paper elevation={3} sx={{ p: 4 }}>
@@ -123,7 +124,7 @@ const Activity = () => {
 					Activity Log
 				</Typography>
 
-				{/* Filters */}
+				{/* Filters - always visible */}
 				<Box sx={{ mt: 3, mb: 3 }}>
 					<Grid container spacing={2}>
 						<Grid item xs={12} sm={6} md={3}>
@@ -200,24 +201,10 @@ const Activity = () => {
 					</Box>
 				</Box>
 
-				{/* Activity Table */}
+				{/* Activity Table - ALWAYS rendered */}
 				{loading ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
 						<CircularProgress />
-					</Box>
-				) : activities.length === 0 ? (
-					<Box
-						data-testid="activity-empty"
-						sx={{
-							display: 'flex',
-							justifyContent: 'center',
-							alignItems: 'center',
-							minHeight: '300px',
-						}}
-					>
-						<Typography variant="body1" color="textSecondary">
-							No activity logs found
-						</Typography>
 					</Box>
 				) : (
 					<>
@@ -232,22 +219,42 @@ const Activity = () => {
 									</TableRow>
 								</TableHead>
 								<TableBody>
-									{activities.map((activity, index) => (
-										<TableRow
-											key={activity._id}
-											data-testid={`activity-row-${activity._id}`}
-										>
-											<TableCell>{activity.username}</TableCell>
-											<TableCell>{getActionLabel(activity.actionType)}</TableCell>
-											<TableCell>{formatDate(activity.createdAt)}</TableCell>
-											<TableCell>{activity.ipAddress || 'N/A'}</TableCell>
+									{activities.length === 0 ? (
+										<TableRow>
+											<TableCell colSpan={4} align="center">
+												<Box
+													data-testid="activity-empty"
+													sx={{
+														display: 'flex',
+														justifyContent: 'center',
+														alignItems: 'center',
+														minHeight: '200px',
+													}}
+												>
+													<Typography variant="body1" color="textSecondary">
+														No activity logs found
+													</Typography>
+												</Box>
+											</TableCell>
 										</TableRow>
-									))}
+									) : (
+										activities.map((activity) => (
+											<TableRow
+												key={activity._id}
+												data-testid={`activity-row-${activity._id}`}
+											>
+												<TableCell>{activity.username}</TableCell>
+												<TableCell>{getActionLabel(activity.actionType)}</TableCell>
+												<TableCell>{formatDate(activity.createdAt)}</TableCell>
+												<TableCell>{activity.ipAddress || 'N/A'}</TableCell>
+											</TableRow>
+										))
+									)}
 								</TableBody>
 							</Table>
 						</TableContainer>
 
-						{/* Pagination */}
+						{/* Pagination - ALWAYS rendered */}
 						<Box
 							data-testid="activity-pagination"
 							sx={{ display: 'flex', justifyContent: 'center', mt: 3, gap: 1 }}
@@ -262,15 +269,15 @@ const Activity = () => {
 							</Button>
 
 							<Pagination
-								count={pagination.pages}
+								count={pagination.pages || 1}
 								page={page}
 								onChange={(e, value) => setPage(value)}
 							/>
 
 							<Button
 								data-testid="activity-pagination-next"
-								onClick={() => setPage(Math.min(pagination.pages, page + 1))}
-								disabled={page === pagination.pages}
+								onClick={() => setPage(Math.min(pagination.pages || 1, page + 1))}
+								disabled={page === (pagination.pages || 1)}
 								variant="outlined"
 							>
 								Next
