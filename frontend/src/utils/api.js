@@ -1,11 +1,21 @@
+import { jwt } from "./index.js";
+
 // utils/api.js
 export const userAPI = {
   // Get current user profile
   getProfile: async () => {
-    const token = localStorage.getItem('token');
+    const token = jwt.getToken();
+    if (!token) {
+      const error = new Error("No token found");
+      error.response = { status: 401 };
+      throw error;
+    }
+
     const response = await fetch('/api/user/decode/', {
+      method: 'GET',
+      credentials: 'include',
       headers: {
-        'x-access-token': token, // Changed from Authorization to x-access-token
+        'x-access-token': token,
         'Content-Type': 'application/json'
       }
     });
@@ -21,11 +31,12 @@ export const userAPI = {
 
   // Update profile (username/email)
   updateProfile: async (username, email) => {
-    const token = localStorage.getItem('token');
+    const token = jwt.getToken();
     const response = await fetch('/api/user/profile', {
       method: 'PUT',
+      credentials: 'include',
       headers: {
-        'x-access-token': token, // Changed from Authorization to x-access-token
+        'x-access-token': token,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ username, email })
@@ -43,11 +54,12 @@ export const userAPI = {
 
   // Change password
   changePassword: async (currentPassword, newPassword) => {
-    const token = localStorage.getItem('token');
+    const token = jwt.getToken();
     const response = await fetch('/api/user/password', {
       method: 'PUT',
+      credentials: 'include',
       headers: {
-        'x-access-token': token, // Changed from Authorization to x-access-token
+        'x-access-token': token,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ currentPassword, newPassword })
@@ -68,13 +80,14 @@ export const activityAPI = {
   // Log a dashboard view
   logDashboardView: async (dashboardPath) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return; // Don't log if not authenticated
+      const token = jwt.getToken();
+      if (!token) return;
       
       await fetch('/api/activity/log', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'x-access-token': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -84,7 +97,6 @@ export const activityAPI = {
       });
     } catch (error) {
       console.error('Error logging activity:', error);
-      // Don't throw - silently fail to not disrupt user experience
     }
   }
 };
