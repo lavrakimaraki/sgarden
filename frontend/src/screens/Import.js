@@ -26,18 +26,18 @@ const TARGET_FIELDS = ['category', 'month', 'year', 'value', 'unit', 'notes', 'i
 const HISTORY_KEY = 'import-history';
 
 const parseCSV = (text) => {
-	const lines = text.trim().split(/\r?\n/);
-	if (lines.length === 0) return { headers: [], rows: [] };
-	const headers = lines[0].split(',').map((h) => h.trim());
-	const rows = lines.slice(1).map((line) => {
-		const values = line.split(',').map((v) => v.trim());
-		const row = {};
-		headers.forEach((h, i) => {
-			row[h] = values[i] || '';
-		});
-		return row;
-	});
-	return { headers, rows };
+    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    if (lines.length === 0) return { headers: [], rows: [] };
+    const headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
+    const rows = lines.slice(1).map((line) => {
+        const values = line.split(',').map((v) => v.trim().replace(/^["']|["']$/g, ''));
+        const row = {};
+        headers.forEach((h, i) => {
+            row[h] = values[i] !== undefined ? values[i] : '';
+        });
+        return row;
+    });
+    return { headers, rows };
 };
 
 const parseJSON = (text) => {
@@ -223,14 +223,20 @@ const Import = () => {
 				</Typography>
 
 				{/* Hidden file input */}
-				<input
-					ref={fileInputRef}
-					data-testid="import-file-input"
-					type="file"
-					accept=".csv,.json,text/csv,application/json"
-					style={{ display: 'none' }}
-					onChange={handleFileInputChange}
-				/>
+                <input
+                    ref={fileInputRef}
+                    data-testid="import-file-input"
+                    type="file"
+                    accept=".csv,.json,text/csv,application/json"
+                    onChange={handleFileInputChange}
+                    style={{
+                        position: 'absolute',
+                        opacity: 0,
+                        width: 1,
+                        height: 1,
+                        pointerEvents: 'none',
+                    }}
+                />
 
 				{/* Dropzone */}
 				<Box
@@ -393,16 +399,15 @@ const Import = () => {
 					>
 						Confirm Import
 					</Button>
-					<Button
-						data-testid="import-commit-button"
-						variant="contained"
-						color="primary"
-						onClick={handleSubmit}
-						disabled={rows.length === 0}
-						sx={{ display: 'none' }}
-					>
-						Commit
-					</Button>
+                    <Button
+                        data-testid="import-commit-button"
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSubmit}
+                        disabled={rows.length === 0}
+                    >
+                        Commit Import
+                    </Button>
 					<Button
 						data-testid="import-cancel"
 						variant="outlined"

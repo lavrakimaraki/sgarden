@@ -9,6 +9,7 @@ import Map from "../components/Map.js";
 import NotesPanel from "../components/NotesPanel.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportArrayToCSV } from "../utils/csv-export.js";
+import ComparisonMode from "../components/ComparisonMode.js";
 import dayjs from "../utils/dayjs.js";
 
 import colors from "../_colors.scss";
@@ -389,7 +390,9 @@ const Dashboard = () => {
           onChange={handleRegionChange}
         />
       </Grid>
-
+        <Grid item>
+          <ComparisonMode />
+        </Grid>
       <Grid container spacing={2}>
         <Grid container item sm={12} md={4} spacing={4}>
           <KeyMetricCard
