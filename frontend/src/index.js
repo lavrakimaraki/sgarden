@@ -138,7 +138,7 @@ const App = () => {
 										<Route path="data/manage" element={<Protected c={<SalesData />} />} />
 										<Route path="admin/audit" element={<AdminOnly c={<Audit />} />} />
 										<Route path="alerts" element={<Protected c={<Alerts />} />} />
-										<Route path="map-page" element={<Protected c={<MapPage />} />} />
+										<Route path="map" element={<Protected c={<MapPage />} />} />
 										<Route path="reports" element={<Protected c={<Reports />} />} />
 										<Route path="reports/:id" element={<Protected c={<ReportView />} />} />
 										<Route path="*" element={<NotFound />} />

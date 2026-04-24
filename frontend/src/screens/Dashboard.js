@@ -8,6 +8,7 @@ import Plot from "../components/Plot.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportToCSV, exportArrayToCSV } from "../utils/csv-export.js";
 import { activityAPI } from "../utils/api.js";
+import RealtimePresence from "../components/RealtimePresence.js";
 
 const availableRegions = ["Thessaloniki", "Athens", "Patras"];
 const generateRandomData = (minimum = 0, maximum = 100) => {
@@ -69,6 +70,7 @@ const Dashboard = () => {
 
     return (
         <Grid container py={2} flexDirection="column">
+            <RealtimePresence />
             <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
                     Overview
@@ -278,6 +280,7 @@ const Dashboard = () => {
                 </Grid>
             </Grid>
             <NotesPanel dashboardId="dashboard" />
+            <RealtimePresence />
         </Grid>
     );
 };

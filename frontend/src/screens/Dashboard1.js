@@ -11,6 +11,7 @@ import { useBookmarks } from "../hooks/useBookmarks.js";
 import { exportArrayToCSV } from "../utils/csv-export.js";
 import ComparisonMode from "../components/ComparisonMode.js";
 import dayjs from "../utils/dayjs.js";
+import RealtimePresence from "../components/RealtimePresence.js";
 
 import colors from "../_colors.scss";
 
@@ -426,6 +427,7 @@ const Dashboard = () => {
 
   return (
     <Grid container py={2} flexDirection="column">
+      <RealtimePresence />
       <div data-testid="chart-threshold-line" style={{ display: 'none' }} aria-hidden="true" />
       <Grid item style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <Typography variant="h4" gutterBottom color="white.main" sx={{ mb: 0 }}>
@@ -508,6 +510,7 @@ const Dashboard = () => {
           </Box>
         </Grid>
       </Grid>
+      <RealtimePresence />
       <NotesPanel dashboardId="dashboard1" />
     </Grid>
   );
