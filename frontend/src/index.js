@@ -34,6 +34,10 @@ import Import from "./screens/Import.js";
 import SalesData from "./screens/SalesData.js";
 import Alerts from "./screens/Alerts.js";
 import Audit from "./screens/Audit.js";
+import MapPage from "./screens/MapPage.js";
+import Reports from "./screens/Reports.js";
+import ReportView from "./screens/ReportView.js";
+import { I18nProvider } from "./utils/i18n.js";
 import { adjustColors, jwt, colorSuggestions } from "./utils/index.js";
 import Map from "./components/Map.js";
 
@@ -109,37 +113,42 @@ const App = () => {
 		<StyledEngineProvider injectFirst>
 			<CssBaseline />
 			<ThemeProvider theme={theme}>
-				<ThemeContext.Provider value={{ themeMode, onThemeToggle: handleThemeToggle }}>
-					<ErrorBoundary FallbackComponent={ErrorFallback}>
-						<LocalizationProvider dateAdapter={AdapterDayjs}>
-							<Header isAuthenticated={authenticated} />
-							<main style={{ position: "relative", zIndex: 0, height: `calc(100vh - ${authenticated ? "160" : "70"}px)` }}>
-								<Routes>
-									<Route index element={<GuestOnly c={<SignIn />} />} />
-									<Route path="auth" element={<GuestOnly c={<Auth />} />} />
-									<Route path="forgot-password" element={<GuestOnly c={<ForgotPassword />} />} />
-									<Route path="reset-password" element={<GuestOnly c={<ResetPassword />} />} />
-									<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
-									<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
-									<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
-									<Route path="activity" element={<AdminOnly c={<Activity />} />} />
-									<Route path="users" element={<AdminOnly c={<Users />} />} />
-									<Route path="import" element={<Protected c={<Import />} />} />
-									<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
-									<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
-									<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />
-									<Route path="data/manage" element={<Protected c={<SalesData />} />} />
-									<Route path="admin/audit" element={<AdminOnly c={<Audit />} />} />
-									<Route path="alerts" element={<Protected c={<Alerts />} />} />
-									<Route path="map" element={<Protected c={<Map />} />} />
-									<Route path="*" element={<NotFound />} />
-								</Routes>
-							</main>
-							{authenticated && <Footer /> }
-							<Snackbar />
-						</LocalizationProvider>
-					</ErrorBoundary>
-				</ThemeContext.Provider>
+				<I18nProvider>
+					<ThemeContext.Provider value={{ themeMode, onThemeToggle: handleThemeToggle }}>
+						<ErrorBoundary FallbackComponent={ErrorFallback}>
+							<LocalizationProvider dateAdapter={AdapterDayjs}>
+								<Header isAuthenticated={authenticated} />
+								<main style={{ position: "relative", zIndex: 0, height: `calc(100vh - ${authenticated ? "160" : "70"}px)` }}>
+									<Routes>
+										<Route index element={<GuestOnly c={<SignIn />} />} />
+										<Route path="auth" element={<GuestOnly c={<Auth />} />} />
+										<Route path="forgot-password" element={<GuestOnly c={<ForgotPassword />} />} />
+										<Route path="reset-password" element={<GuestOnly c={<ResetPassword />} />} />
+										<Route path="sign-up" element={<GuestOnly c={<SignUp />} />} />
+										<Route path="register" element={<GuestOnly c={<InvitedSignUp />} />} />
+										<Route path="profile" element={<Protected c={<Profile />} />} /> {/* Add this line */}
+										<Route path="activity" element={<AdminOnly c={<Activity />} />} />
+										<Route path="users" element={<AdminOnly c={<Users />} />} />
+										<Route path="import" element={<Protected c={<Import />} />} />
+										<Route path="dashboard" element={<Protected c={<Dashboard />} />} />
+										<Route path="dashboard1" element={<Protected c={<Dashboard1 />} />} />
+										<Route path="dashboard2" element={<Protected c={<Dashboard2 />} />} />
+										<Route path="data/manage" element={<Protected c={<SalesData />} />} />
+										<Route path="admin/audit" element={<AdminOnly c={<Audit />} />} />
+										<Route path="alerts" element={<Protected c={<Alerts />} />} />
+										<Route path="map" element={<Protected c={<Map />} />} />
+										<Route path="map-page" element={<Protected c={<MapPage />} />} />
+										<Route path="reports" element={<Protected c={<Reports />} />} />
+										<Route path="reports/:id" element={<Protected c={<ReportView />} />} />
+										<Route path="*" element={<NotFound />} />
+									</Routes>
+								</main>
+								{authenticated && <Footer /> }
+								<Snackbar />
+							</LocalizationProvider>
+						</ErrorBoundary>
+					</ThemeContext.Provider>
+				</I18nProvider>
 			</ThemeProvider>
 		</StyledEngineProvider>
 	);

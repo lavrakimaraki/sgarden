@@ -32,6 +32,7 @@ const ButtonWithText = ({ text, icon, more, handler }) => {
 		"Sales Data": "sidebar-sales-data-link",
 		Alerts: "sidebar-alerts-link",
 		Audit: "sidebar-audit-link",
+		Reports: "sidebar-reports-link",
 	};
 		return mapping[buttonText] || null;
 	};
@@ -154,6 +155,10 @@ const buttons = [
         text: "Insights",
         handler: () => navigate("/dashboard2"),
     },
+	{
+    text: "Reports",
+    handler: () => navigate("/reports"),
+	},
 ];
 
 	return (
