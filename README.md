@@ -7,10 +7,7 @@ Unified SGarden project with one root dependency manifest and two app folders:
 
 Note: `frontend/package.json` and `backend/package.json` are minimal tool/runtime manifests only. Dependencies are installed and managed from the root `package.json`.
 
-## Prerequisites
-
-- Node.js >= 16
-- npm
+## Prerequisit
 
 ## Install
 
