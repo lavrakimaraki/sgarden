@@ -15,7 +15,6 @@ Install all dependencies once from project root:
 ```sh
 npm install
 ```
-
 ## Project Structure
 
 ```text
