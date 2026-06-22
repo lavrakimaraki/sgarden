@@ -34,8 +34,7 @@ Development server:
 
 ```sh
 npm run frontend:start
-```
-
+``
 Build:
 
 ```sh
