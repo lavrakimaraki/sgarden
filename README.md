@@ -10,8 +10,6 @@ Note: `frontend/package.json` and `backend/package.json` are minimal tool/runtim
 ## Prerequisit
 
 ## Install
-
-
 Install all dependencies once from project root:
 
 ```sh
